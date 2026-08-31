@@ -43,6 +43,10 @@ The AI is optional: everything works without an API (local rules + field memory)
 
 The built-in update check points at the upstream repository's releases. **Installing an official package over this fork will remove the field memory feature** (your profile data itself stays in browser storage). To keep field memory, update from this repository.
 
+## Contact
+
+For questions or suggestions about the field memory feature, email <1445668509@qq.com> or open an issue in this repository.
+
 ## Relationship to upstream
 
 - Base: upstream `main` (`005eda9`, the line after v1.0.2), with roughly 490 added lines that do not alter any official behavior.
