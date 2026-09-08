@@ -11,7 +11,7 @@ The official positioning is unchanged: a profile-based form filler. It never aut
 Fields like "place of origin", "home university" or "preferred city" show up on every application site under slightly different names, and neither local rules nor the AI recognize them every time. Field Memory fixes exactly that:
 
 - **Automatic learning**: whenever a field is successfully auto-filled, the mapping "form field label → profile field path" is stored. The next occurrence of the same label is filled directly.
-- **Learn from this page**: after you manually fill a page, click the new button in the popup. The extension reads the current page values, matches them against your local profile, and stores the mappings. Fields whose values are missing from the profile are listed so you can add them once and get them auto-filled forever after.
+- **Learn from this page + one-click capture**: after you manually fill a page, click the new button in the popup. The extension reads the current page values, matches them against your local profile, and stores the mappings. Fields whose values are missing from the profile are listed in the popup together with the values you typed — tick them, click "Capture & re-learn", and the values are written into your local profile with an immediate re-learn (plain sections such as basic info; grouped sections like education or projects should still be added on the options page).
 - **Local management**: the options page offers an on/off toggle, the entry count, per-entry delete, and clear-all.
 
 ### Safety limits
@@ -20,6 +20,7 @@ Fields like "place of origin", "home university" or "preferred city" show up on 
 - Fields that appear more than once on the same page (e.g. "school" across multiple education entries) are neither read from nor written to memory, preventing misplacement.
 - Memory candidates still pass the upstream semantic-compatibility checks; category conflicts are rejected. Memory only fills gaps and never overrides local-rule or AI matches.
 - "Learn from this page" skips upload/file/photo/password fields and skips ambiguous multi-value matches, reporting them instead.
+- "Capture" is an explicit, opt-in action: only ticked fields have their values written into the local profile, plain (simple) sections only with an "other information" fallback; the memory itself still stores mappings only, never values.
 - Capacity is capped at 500 entries with least-recently-used eviction.
 
 ## Installation (developer mode)
@@ -35,7 +36,7 @@ No dependencies, no build step.
 
 Identical to official OpenJobAutofill (see the upstream [README](https://github.com/Br1an67/OpenJobAutofill)): maintain your local profile → open a job-application form → click "Start autofill" in the popup → review the green (filled) / orange (pending) marks → confirm and submit yourself.
 
-The new flow: after manually filling a site for the first time, click "Learn from this page" once — the site's particular field naming gets memorized and future autofills cover it automatically.
+The new flow: after manually filling a site for the first time, click "Learn from this page" once — the site's particular field naming gets memorized and future autofills cover it automatically. If some page values are not yet in your profile, a "Capture into profile" checklist appears in the popup: tick the fields, and they are written into the profile with an automatic re-learn — no detour to the options page.
 
 The AI is optional: everything works without an API (local rules + field memory); configuring an OpenAI-compatible API improves recognition. AI requests contain field names only, never profile values.
 

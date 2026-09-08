@@ -109,6 +109,114 @@ async function setFieldMemoryEnabled(payload = {}) {
   return store;
 }
 
+// 一键补录：把页面上手动填写、但资料库里没有的值直接写进资料库。
+// 只写入 simple 章节（基本信息/自我描述/有关声明/其他信息等）；教育、项目等
+// repeat 章节需要成组维护，保持由弹窗提示去设置页手动添加。
+const PROFILE_CAPTURE_REPEAT_TITLES = new Set([
+  "求职意向",
+  "教育经历",
+  "教育背景",
+  "学历经历",
+  "实习经历",
+  "工作/实习经历",
+  "实践经历",
+  "正式工作经历",
+  "工作经历",
+  "绩效考核",
+  "年度绩效",
+  "项目经历/实践活动",
+  "项目经历",
+  "实践活动",
+  "学生工作",
+  "干部任职经历",
+  "干部任职经历（在校职务）",
+  "在校职务",
+  "社团工作",
+  "奖励情况",
+  "奖惩情况",
+  "荣誉成果",
+  "语言能力",
+  "英语能力",
+  "外语能力",
+  "计算机技能",
+  "计算机技能（IT技能）",
+  "IT技能",
+  "证书技能",
+  "证书信息",
+  "资格证书",
+  "证书",
+  "家庭信息",
+  "家庭及社会关系",
+  "家庭情况",
+  "培训",
+  "培训经历",
+  "论文著作",
+  "论文",
+  "论文和著作",
+  "专利成果",
+  "专利"
+]);
+
+async function addProfileValues(payload = {}) {
+  const items = Array.isArray(payload?.items) ? payload.items : [];
+  const settings = await getSettings();
+  const profile = settings.profileV2;
+  const added = [];
+  const skipped = [];
+
+  for (const item of items) {
+    const label = String(item?.label || "").trim().slice(0, 80);
+    const value = String(item?.value || "").trim().slice(0, 500);
+    if (!label || !value) {
+      continue;
+    }
+
+    const section = resolveProfileCaptureSection(profile, item?.category);
+    if (!section) {
+      skipped.push(label);
+      continue;
+    }
+
+    if (Object.prototype.hasOwnProperty.call(section.values, label)) {
+      const custom = Array.isArray(section.custom) ? section.custom : (section.custom = []);
+      if (!custom.some((row) => row?.label === label && row?.value === value)) {
+        custom.push({ label, value });
+      }
+    } else {
+      section.values[label] = value;
+    }
+    added.push(label);
+  }
+
+  if (added.length > 0) {
+    await saveSettings({ profileV2: profile });
+  }
+
+  return {
+    ok: true,
+    addedCount: added.length,
+    addedLabels: added.slice(0, 8),
+    skippedCount: skipped.length,
+    skippedLabels: skipped.slice(0, 8)
+  };
+}
+
+function resolveProfileCaptureSection(profile, category) {
+  const sections = Object.values(profile?.sections || {}).filter(Boolean);
+  const normalized = String(category || "").replace(/\s+/g, "");
+  if (normalized && PROFILE_CAPTURE_REPEAT_TITLES.has(normalized)) {
+    return null;
+  }
+  const matched = sections.find(
+    (section) => section.kind === "simple" && String(section.title || "").replace(/\s+/g, "") === normalized
+  );
+  if (matched) {
+    return matched;
+  }
+  const other = sections.find((section) => section.key === "other" && section.kind === "simple");
+  return other || null;
+}
+
 function normalizeMemoryKey(value) {
   return String(value || "").trim().slice(0, 160);
 }
@@ -213,6 +321,8 @@ async function handleMessage(message) {
       return clearFieldMemory();
     case "OJAF_SET_FIELD_MEMORY_ENABLED":
       return setFieldMemoryEnabled(message.payload || {});
+    case "OJAF_ADD_PROFILE_VALUES":
+      return addProfileValues(message.payload || {});
     case "OJAF_GET_UPDATE_STATUS":
       return getUpdateState();
     case "OJAF_CHECK_FOR_UPDATE":

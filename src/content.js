@@ -5285,6 +5285,7 @@
     const learned = [];
     const ambiguous = [];
     const notInProfile = [];
+    const captureCandidates = [];
     let skippedRepeat = 0;
 
     for (const field of fields) {
@@ -5302,7 +5303,16 @@
 
       const valueMatches = entries.filter((entry) => valuesLookEquivalent(field.currentValue, entry.value));
       if (valueMatches.length === 0) {
-        notInProfile.push(fieldLabel || field.fieldId);
+        // 值不在资料库里：把标签和值一并收集起来，供弹窗「一键补录」写回资料库。
+        const captureLabel = fieldLabel || field.fieldId;
+        notInProfile.push(captureLabel);
+        if (!captureCandidates.some((row) => row.label === captureLabel)) {
+          captureCandidates.push({
+            label: String(captureLabel).slice(0, 80),
+            value: normalizeText(String(field.currentValue || ""), 500),
+            category: fieldCategory || ""
+          });
+        }
         continue;
       }
 
@@ -5361,6 +5371,7 @@
         notInProfileLabels: Array.from(new Set(notInProfile)).slice(0, 8),
         skippedRepeat,
         scannedWithValue: fields.length,
+        captureCandidates: captureCandidates.slice(0, 12),
         message: "没有学到新映射：页面上有值的字段要么已重复学习，要么值不在资料库里。"
       };
     }
@@ -5375,6 +5386,7 @@
       notInProfileLabels: Array.from(new Set(notInProfile)).slice(0, 8),
       skippedRepeat,
       scannedWithValue: fields.length,
+      captureCandidates: captureCandidates.slice(0, 12),
       message: `已学习 ${learned.length} 条字段映射。`
     };
   }

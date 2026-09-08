@@ -7,11 +7,17 @@ const els = {
   clearMarksBtn: document.getElementById("clearMarksBtn"),
   updateStatus: document.getElementById("updateStatus"),
   checkUpdateBtn: document.getElementById("checkUpdateBtn"),
-  openUpdateBtn: document.getElementById("openUpdateBtn")
+  openUpdateBtn: document.getElementById("openUpdateBtn"),
+  capturePanel: document.getElementById("capturePanel"),
+  captureList: document.getElementById("captureList"),
+  captureSaveBtn: document.getElementById("captureSaveBtn")
 };
 
 const DEFAULT_START_LABEL = els.startAutofillBtn.textContent;
 const DEFAULT_CHECK_UPDATE_LABEL = els.checkUpdateBtn.textContent;
+
+// 从本页学习带回来的“资料库里没有”的字段清单，勾选后可一键补录进资料库。
+let captureQueue = [];
 
 els.openOptions.addEventListener("click", () => chrome.runtime.openOptionsPage());
 els.startAutofillBtn.addEventListener("click", () => {
@@ -28,6 +34,9 @@ els.clearMarksBtn.addEventListener("click", () => {
 });
 els.checkUpdateBtn.addEventListener("click", () => {
   void checkUpdate();
+});
+els.captureSaveBtn?.addEventListener("click", () => {
+  void saveCaptureAndRelearn();
 });
 els.openUpdateBtn.addEventListener("click", () => {
   void openUpdatePage();
@@ -130,8 +139,10 @@ async function learnFromPage() {
     const data = response?.data || {};
     if (!data.ok) {
       setStatus(data.reason || "从本页学习未完成。", true);
+      renderCapturePanel([]);
       return;
     }
+    renderCapturePanel(data.captureCandidates || []);
     const parts = [];
     if (data.learned > 0) {
       parts.push(`已学习 ${data.learned} 条映射（页面绿色标记 = 已学会的字段），下次遇到同名字段会自动填。`);
@@ -140,7 +151,7 @@ async function learnFromPage() {
     }
     if (data.notInProfileCount > 0) {
       const labels = (data.notInProfileLabels || []).join("、");
-      parts.push(`有 ${data.notInProfileCount} 个字段的值在资料库找不到（如 ${labels}）——把它们补进设置页资料库，学一次以后就能自动填。`);
+      parts.push(`有 ${data.notInProfileCount} 个字段的值在资料库找不到（如 ${labels}）——在下方勾选即可补录进资料库，学一次以后就能自动填。`);
     }
     if (data.ambiguousCount > 0) {
       const labels = (data.ambiguousLabels || []).join("、");
@@ -153,6 +164,69 @@ async function learnFromPage() {
     els.learnFromPageBtn.disabled = false;
     els.learnFromPageBtn.textContent = defaultLabel;
   }
+}
+
+function renderCapturePanel(candidates) {
+  captureQueue = Array.isArray(candidates)
+    ? candidates.filter((item) => item?.label && item?.value)
+    : [];
+  if (!els.capturePanel || !els.captureList) {
+    return;
+  }
+  els.capturePanel.hidden = captureQueue.length === 0;
+  els.captureList.innerHTML = captureQueue
+    .map((item, index) => {
+      const categoryNote = item.category ? `（${escapeHtml(item.category)}）` : "";
+      return `
+      <label style="display:flex;gap:8px;align-items:flex-start;margin:6px 0;cursor:pointer;">
+        <input type="checkbox" data-capture-index="${index}" checked style="margin-top:3px;flex:none;" />
+        <span><strong>${escapeHtml(item.label)}</strong><span class="hint">${categoryNote}：${escapeHtml(item.value)}</span></span>
+      </label>`;
+    })
+    .join("");
+}
+
+async function saveCaptureAndRelearn() {
+  if (!els.captureSaveBtn || !els.captureList) {
+    return;
+  }
+  const selected = Array.from(els.captureList.querySelectorAll("input[data-capture-index]:checked"))
+    .map((input) => captureQueue[Number(input.dataset.captureIndex)])
+    .filter(Boolean);
+  if (selected.length === 0) {
+    setStatus("没有勾选任何要补录的字段。", true);
+    return;
+  }
+
+  const defaultLabel = els.captureSaveBtn.textContent;
+  els.captureSaveBtn.disabled = true;
+  els.captureSaveBtn.textContent = "补录中...";
+  try {
+    const result = await sendRuntimeMessage({
+      type: "OJAF_ADD_PROFILE_VALUES",
+      payload: { items: selected }
+    });
+    const parts = [`已把 ${result.addedCount || 0} 个字段的值写进资料库。`];
+    if (result.skippedCount > 0) {
+      const labels = (result.skippedLabels || []).join("、");
+      parts.push(`${result.skippedCount} 个字段属于成组经历（${labels}），请到设置页添加。`);
+    }
+    parts.push("正在重新学习...");
+    setStatus(parts.join(" "));
+    renderCapturePanel([]);
+    await learnFromPage();
+  } catch (error) {
+    setStatus(`补录失败：${error.message}`, true);
+  } finally {
+    els.captureSaveBtn.disabled = false;
+    els.captureSaveBtn.textContent = defaultLabel;
+  }
+}
+
+function escapeHtml(value) {
+  return String(value || "").replace(/[&<>"']/g, (char) => (
+    { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[char]
+  ));
 }
 
 async function clearMarks() {
