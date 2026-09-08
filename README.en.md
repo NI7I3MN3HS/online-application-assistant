@@ -12,12 +12,13 @@ Fields like "place of origin", "home university" or "preferred city" show up on 
 
 - **Automatic learning**: whenever a field is successfully auto-filled, the mapping "form field label → profile field path" is stored. The next occurrence of the same label is filled directly.
 - **Learn from this page + one-click capture**: after you manually fill a page, click the new button in the popup. The extension reads the current page values, matches them against your local profile, and stores the mappings. Fields whose values are missing from the profile are listed in the popup together with the values you typed — tick them, click "Capture & re-learn", and the values are written into your local profile with an immediate re-learn (plain sections such as basic info; grouped sections like education or projects should still be added on the options page).
+- **Grouped-field learning**: labels that appear multiple times on one page (e.g. "school" in each of two education entries) are learnable too — when the values line up with grouped profile entries, the popup shows a confirmation list of "Nth occurrence → Nth entry"; tick and confirm, and the mapping is stored by order of occurrence so the whole group auto-fills next time. Successful order-based local pairings are also memorized automatically.
 - **Local management**: the options page offers an on/off toggle, the entry count, per-entry delete, and clear-all.
 
 ### Safety limits
 
 - Only the mapping "field label → profile path" plus light statistics (most recent site, success count) are stored — **never any profile values**, consistent with the project's privacy stance.
-- Fields that appear more than once on the same page (e.g. "school" across multiple education entries) are neither read from nor written to memory, preventing misplacement.
+- Fields that appear more than once on the same page (e.g. "school" across multiple education entries) are never written to ordinary single-value memory, preventing misplacement; only an explicit "grouped learning" confirmation in the popup — or a successful order-based local pairing — writes occurrence-indexed keys (Nth occurrence → Nth entry).
 - Memory candidates still pass the upstream semantic-compatibility checks; category conflicts are rejected. Memory only fills gaps and never overrides local-rule or AI matches.
 - "Learn from this page" skips upload/file/photo/password fields and skips ambiguous multi-value matches, reporting them instead.
 - "Capture" is an explicit, opt-in action: only ticked fields have their values written into the local profile, plain (simple) sections only with an "other information" fallback; the memory itself still stores mappings only, never values.

@@ -32,6 +32,13 @@
         <button id="captureSaveBtn" class="secondary full" type="button">补录并重新学习</button>
       </section>
 
+      <section id="repeatPanel" class="panel" hidden>
+        <h2>成组字段学习</h2>
+        <p class="hint">下面这些同名字段在一页里出现了多次（如两条教育经历各自的「学校」），值能和资料库里的成组条目对上。勾选后点「学习成组映射」，插件会记住“第 N 个 → 第 N 条”，下次按出现顺序自动填。</p>
+        <div id="repeatList"></div>
+        <button id="repeatSaveBtn" class="secondary full" type="button">学习成组映射</button>
+      </section>
+
       <section class="panel">
         <h2>版本更新</h2>
         <div id="updateStatus" class="update-status">正在读取更新状态...</div>

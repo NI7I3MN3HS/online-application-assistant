@@ -5180,19 +5180,25 @@
     const matchedFieldIds = new Set(plan.candidates.map((candidate) => candidate?.fieldId).filter(Boolean));
     const entries = Array.isArray(plan.entries) ? plan.entries : getCurrentProfileEntries();
     const memoryCandidates = [];
+    const occurrenceCounters = new Map();
 
     for (const field of plan.scan.fields) {
-      if (!field?.canFill || matchedFieldIds.has(field.fieldId)) {
+      if (!field?.canFill) {
         continue;
       }
       const fieldLabel = field.inferredLabel || inferFieldLabel(field);
       const fieldCategory = field.inferredCategory || inferMatchSection(field);
       const key = buildFieldMemoryKey(fieldLabel, fieldCategory);
-      if (!key || (totals.get(key) || 0) > 1) {
+      if (!key) {
         continue;
       }
-      const record = memoryStore.entries[key];
-      if (!record?.sourcePath) {
+      const occurrenceIndex = (occurrenceCounters.get(key) || 0) + 1;
+      occurrenceCounters.set(key, occurrenceIndex);
+      // 同页重复字段不走普通单值记忆，只认“成组学习”写入的带序号键（第 N 个 → 第 N 条）。
+      const record = (totals.get(key) || 0) > 1
+        ? memoryStore.entries[`${key}|#${occurrenceIndex}`]
+        : memoryStore.entries[key];
+      if (matchedFieldIds.has(field.fieldId) || !record?.sourcePath) {
         continue;
       }
       const candidate = createAiAutofillCandidate(
@@ -5246,11 +5252,20 @@
           continue;
         }
         const key = buildFieldMemoryKey(candidate.fieldLabel, candidate.fieldCategory);
-        if (!key || (totals.get(key) || 0) > 1) {
+        if (!key) {
           continue;
         }
+        // 成组字段（同页同名多次出现）按顺序配对填写成功后，把成功结果固化成带序号的记忆键。
+        let memoryKey = key;
+        if ((totals.get(key) || 0) > 1) {
+          const occurrenceIndex = Number(candidate?.field?.fieldOccurrenceIndex || 0);
+          if (!occurrenceIndex) {
+            continue;
+          }
+          memoryKey = `${key}|#${occurrenceIndex}`;
+        }
         items.push({
-          key,
+          key: memoryKey,
           sourcePath: candidate.sourceItemId,
           fieldLabel: candidate.fieldLabel,
           sourceLabel: candidate.sourceLabel || "",
@@ -5286,14 +5301,21 @@
     const ambiguous = [];
     const notInProfile = [];
     const captureCandidates = [];
+    const repeatGroups = new Map();
+    const occurrenceCounters = new Map();
     let skippedRepeat = 0;
 
     for (const field of fields) {
       const fieldLabel = field.inferredLabel || inferFieldLabel(field);
       const fieldCategory = field.inferredCategory || inferMatchSection(field);
       const key = buildFieldMemoryKey(fieldLabel, fieldCategory);
+      const occurrenceIndex = key ? (occurrenceCounters.get(key) || 0) + 1 : 0;
+      if (key) {
+        occurrenceCounters.set(key, occurrenceIndex);
+      }
       if (!key || (totals.get(key) || 0) > 1) {
         skippedRepeat += 1;
+        collectRepeatCandidate(field, fieldLabel, fieldCategory, key, occurrenceIndex, totals.get(key) || 0, entries, repeatGroups);
         continue;
       }
       const sensitiveText = compactText([fieldLabel, field.placeholder, field.name, field.id].join(" "));
@@ -5372,6 +5394,7 @@
         skippedRepeat,
         scannedWithValue: fields.length,
         captureCandidates: captureCandidates.slice(0, 12),
+        repeatCandidates: collectRepeatCandidateList(repeatGroups),
         message: "没有学到新映射：页面上有值的字段要么已重复学习，要么值不在资料库里。"
       };
     }
@@ -5387,8 +5410,60 @@
       skippedRepeat,
       scannedWithValue: fields.length,
       captureCandidates: captureCandidates.slice(0, 12),
+      repeatCandidates: collectRepeatCandidateList(repeatGroups),
       message: `已学习 ${learned.length} 条字段映射。`
     };
+  }
+
+  // 同页重复字段（如两条教育经历各自的「学校」）不参与普通学习；
+  // 这里按出现顺序做值匹配，值能对上资料库成组条目的，收集为“成组学习候选”，
+  // 由弹窗确认后写入带序号的记忆键（第 N 个 → 第 N 条），避免普通单值记忆的错位风险。
+  function collectRepeatCandidate(field, fieldLabel, fieldCategory, key, occurrenceIndex, occurrenceTotal, entries, repeatGroups) {
+    if (!key || !occurrenceIndex || occurrenceTotal <= 1) {
+      return;
+    }
+    const sensitiveText = compactText([fieldLabel, field.placeholder, field.name, field.id].join(" "));
+    if (/上传|附件|照片|证件照|简历附件|密码/.test(sensitiveText)) {
+      return;
+    }
+    const valueMatches = entries.filter((entry) =>
+      entry?.hasValue && getEntryOccurrenceIndex(entry) > 0 && valuesLookEquivalent(field.currentValue, entry.value)
+    );
+    // 出现序号和资料库条目序号对齐的优先；对不齐时仅在值唯一命中时才收，宁缺勿滥。
+    let chosen = valueMatches.find((entry) => getEntryOccurrenceIndex(entry) === occurrenceIndex) || null;
+    if (!chosen && valueMatches.length === 1) {
+      chosen = valueMatches[0];
+    }
+    if (!chosen) {
+      return;
+    }
+    let group = repeatGroups.get(key);
+    if (!group) {
+      group = {
+        key,
+        label: fieldLabel || key,
+        category: fieldCategory || "",
+        count: occurrenceTotal,
+        items: []
+      };
+      repeatGroups.set(key, group);
+    }
+    if (group.items.some((item) => item.occurrence === occurrenceIndex)) {
+      return;
+    }
+    group.items.push({
+      occurrence: occurrenceIndex,
+      memoryKey: `${key}|#${occurrenceIndex}`,
+      sourceLabel: chosen.label || "",
+      sourcePath: chosen.itemId || "",
+      valuePreview: normalizeText(String(field.currentValue || ""), 60)
+    });
+  }
+
+  function collectRepeatCandidateList(repeatGroups) {
+    return Array.from(repeatGroups.values())
+      .filter((group) => group.items.length > 0)
+      .slice(0, 6);
   }
 
   function buildAutofillPlan(scan) {

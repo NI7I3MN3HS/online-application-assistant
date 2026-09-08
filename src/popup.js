@@ -10,7 +10,10 @@ const els = {
   openUpdateBtn: document.getElementById("openUpdateBtn"),
   capturePanel: document.getElementById("capturePanel"),
   captureList: document.getElementById("captureList"),
-  captureSaveBtn: document.getElementById("captureSaveBtn")
+  captureSaveBtn: document.getElementById("captureSaveBtn"),
+  repeatPanel: document.getElementById("repeatPanel"),
+  repeatList: document.getElementById("repeatList"),
+  repeatSaveBtn: document.getElementById("repeatSaveBtn")
 };
 
 const DEFAULT_START_LABEL = els.startAutofillBtn.textContent;
@@ -18,6 +21,9 @@ const DEFAULT_CHECK_UPDATE_LABEL = els.checkUpdateBtn.textContent;
 
 // 从本页学习带回来的“资料库里没有”的字段清单，勾选后可一键补录进资料库。
 let captureQueue = [];
+
+// 从本页学习带回来的“同页重复字段”清单，确认后按出现顺序写入成组记忆。
+let repeatQueue = [];
 
 els.openOptions.addEventListener("click", () => chrome.runtime.openOptionsPage());
 els.startAutofillBtn.addEventListener("click", () => {
@@ -37,6 +43,9 @@ els.checkUpdateBtn.addEventListener("click", () => {
 });
 els.captureSaveBtn?.addEventListener("click", () => {
   void saveCaptureAndRelearn();
+});
+els.repeatSaveBtn?.addEventListener("click", () => {
+  void saveRepeatLearning();
 });
 els.openUpdateBtn.addEventListener("click", () => {
   void openUpdatePage();
@@ -140,9 +149,11 @@ async function learnFromPage() {
     if (!data.ok) {
       setStatus(data.reason || "从本页学习未完成。", true);
       renderCapturePanel([]);
+      renderRepeatPanel([]);
       return;
     }
     renderCapturePanel(data.captureCandidates || []);
+    renderRepeatPanel(data.repeatCandidates || []);
     const parts = [];
     if (data.learned > 0) {
       parts.push(`已学习 ${data.learned} 条映射（页面绿色标记 = 已学会的字段），下次遇到同名字段会自动填。`);
@@ -227,6 +238,72 @@ function escapeHtml(value) {
   return String(value || "").replace(/[&<>"']/g, (char) => (
     { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[char]
   ));
+}
+
+function renderRepeatPanel(groups) {
+  repeatQueue = Array.isArray(groups)
+    ? groups.filter((group) => group?.key && Array.isArray(group.items) && group.items.length > 0)
+    : [];
+  if (!els.repeatPanel || !els.repeatList) {
+    return;
+  }
+  els.repeatPanel.hidden = repeatQueue.length === 0;
+  els.repeatList.innerHTML = repeatQueue
+    .map((group, index) => {
+      const mappings = (group.items || [])
+        .map((item) => `<div class="hint" style="margin:2px 0 0 0;">第 ${item.occurrence} 个 → ${escapeHtml(item.sourceLabel)}：${escapeHtml(item.valuePreview || "")}</div>`)
+        .join("");
+      const categoryNote = group.category ? `（${escapeHtml(group.category)}）` : "";
+      return `
+      <label style="display:flex;gap:8px;align-items:flex-start;margin:6px 0;cursor:pointer;">
+        <input type="checkbox" data-repeat-index="${index}" checked style="margin-top:3px;flex:none;" />
+        <span><strong>「${escapeHtml(group.label)}」出现 ${group.count} 次${categoryNote}</strong>${mappings}</span>
+      </label>`;
+    })
+    .join("");
+}
+
+async function saveRepeatLearning() {
+  if (!els.repeatSaveBtn || !els.repeatList) {
+    return;
+  }
+  const selected = Array.from(els.repeatList.querySelectorAll("input[data-repeat-index]:checked"))
+    .map((input) => repeatQueue[Number(input.dataset.repeatIndex)])
+    .filter(Boolean);
+  if (selected.length === 0) {
+    setStatus("没有勾选任何要学习的成组字段。", true);
+    return;
+  }
+  const items = selected.flatMap((group) =>
+    (group.items || [])
+      .filter((item) => item?.memoryKey && item?.sourcePath)
+      .map((item) => ({
+        key: item.memoryKey,
+        sourcePath: item.sourcePath,
+        fieldLabel: group.label,
+        sourceLabel: item.sourceLabel || "",
+        hostname: "",
+        mappingSource: "成组学习"
+      }))
+  );
+  if (items.length === 0) {
+    setStatus("没有可写入的成组映射。", true);
+    return;
+  }
+
+  const defaultLabel = els.repeatSaveBtn.textContent;
+  els.repeatSaveBtn.disabled = true;
+  els.repeatSaveBtn.textContent = "学习中...";
+  try {
+    await sendRuntimeMessage({ type: "OJAF_RECORD_FIELD_MEMORY", payload: { items } });
+    setStatus(`已学习 ${selected.length} 组成组字段映射（共 ${items.length} 条，按出现顺序配对）。下次同名重复字段会按顺序自动填。`);
+    renderRepeatPanel([]);
+  } catch (error) {
+    setStatus(`成组学习失败：${error.message}`, true);
+  } finally {
+    els.repeatSaveBtn.disabled = false;
+    els.repeatSaveBtn.textContent = defaultLabel;
+  }
 }
 
 async function clearMarks() {
