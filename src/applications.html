@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>投递记录 · 网申助手</title>
+  <link rel="stylesheet" href="./ui.css" />
+<link rel="stylesheet" href="./applications.css" />
+</head>
+<body>
+  <div class="app-layout">
+<aside class="app-sidebar">
+<a class="brand" href="./options.html#profile">
+<img class="brand-logo" src="../icons/icon48.png" alt="" width="36" height="36">
+<span class="brand-name">网申助手</span>
+</a>
+<nav class="app-nav" aria-label="主导航">
+<a data-main-nav="profile" href="./options.html#profile">简历资料</a>
+<a data-main-nav="applications" aria-current="page" href="./applications.html">投递日志</a>
+<a data-main-nav="memory" href="./options.html#memory">字段记忆</a>
+<a data-main-nav="settings" href="./options.html#settings">设置</a>
+</nav>
+<div class="sidebar-local">本地储藏</div>
+</aside>
+<main class="records-page">
+    <header class="records-header page-heading">
+      <div>
+<p class="page-kicker">记录清单</p>
+<h1>投递日志</h1>
+<p>记下每次填写，由你确认投递、维护进展。所有记录保存在本机。</p>
+</div>
+      <div class="actions">
+<button id="manageStatuses" class="secondary" type="button">管理状态</button>
+<button id="addApplication" type="button">新增记录</button>
+</div>
+    </header>
+    <nav id="applicationTabs" class="text-tabs application-tabs" aria-label="状态快捷筛选">
+</nav>
+<section class="filters" aria-label="搜索和筛选">
+      <label class="search-field">搜索记录<input id="applicationSearch" type="search" placeholder="公司、岗位、网站或备注" />
+</label>
+      <label>状态<select id="applicationStatusFilter">
+<option value="">全部状态</option>
+</select>
+</label>
+      <label>网站<select id="applicationSiteFilter">
+<option value="">全部网站</option>
+</select>
+</label>
+      <label class="checkline">
+<input id="incompleteOnly" type="checkbox" />仅看待补全</label>
+    </section>
+    <p id="applicationFeedback" class="feedback" role="status" aria-live="polite">正在读取本机记录…</p>
+    <div class="workspace">
+      <section class="record-list" aria-labelledby="recordListTitle">
+        <div class="list-heading">
+<h2 id="recordListTitle">全部记录</h2>
+<span id="applicationCount">
+</span>
+</div>
+        <div class="table-scroll">
+          <table>
+<thead>
+<tr>
+<th scope="col">公司与岗位</th>
+<th scope="col">状态</th>
+<th scope="col">来源网站</th>
+<th scope="col">最近更新</th>
+</tr>
+</thead>
+<tbody id="applicationRows">
+</tbody>
+</table>
+        </div>
+        <div id="applicationEmpty" class="empty-state" hidden>
+<h3>还没有投递记录</h3>
+<p>用插件完成一次填写后，记录会自动出现在这里。也可以手动新增。</p>
+</div>
+      </section>
+      <aside class="editor" aria-labelledby="applicationEditorTitle">
+        <header class="inspector-heading">
+<h2 id="applicationEditorTitle">条目简析</h2>
+<button id="closeApplicationEditor" type="button" class="text-button" aria-label="收起记录详情">关闭</button>
+</header>
+<div id="recordIdentity" hidden>
+<p id="recordIdentityCompany">
+</p>
+<h3 id="recordIdentityPosition">
+</h3>
+</div>
+        <p id="editorPlaceholder" class="muted">在左侧选中记录查看详情，或点击“新增记录”补记一次申请。</p>
+        <form id="applicationEditor" hidden>
+          <fieldset id="applicationEditorFields">
+            <legend class="visually-hidden">编辑投递记录</legend>
+            <label>公司<input id="recordCompany" name="company" maxlength="240" placeholder="待补全" />
+</label>
+            <label>岗位<input id="recordPosition" name="position" maxlength="240" placeholder="待补全" />
+</label>
+            <label>状态（手动维护）<select id="recordStatus" name="statusId">
+</select>
+</label>
+            <p class="field-note">“填写”不代表已投递。确认提交后，可手动改为“已投递”。</p>
+            <label>来源链接<input id="recordUrl" name="sourceUrl" type="url" maxlength="2048" placeholder="https://…（选填）" />
+</label>
+            <a id="openApplicationSource" target="_blank" rel="noopener noreferrer" hidden>打开来源网页</a>
+            <label>网页标题<input id="recordPageTitle" name="pageTitle" maxlength="500" placeholder="保留页面标题，便于核对（选填）" />
+</label>
+            <label>备注<textarea id="recordNotes" name="notes" maxlength="5000" rows="4" placeholder="面试安排、跟进事项或其他补充信息">
+</textarea>
+</label>
+            <p id="recordTimes" class="field-note times">
+</p>
+            <div class="actions">
+<button id="saveApplication" type="submit">保存修改</button>
+<button id="reloadApplication" type="button" class="secondary">重新加载</button>
+<button id="deleteApplication" type="button" class="danger">删除记录</button>
+</div>
+          </fieldset>
+        </form>
+      </aside>
+    </div>
+  </main>
+</div>
+  <dialog id="statusesDialog" aria-labelledby="statusesTitle">
+    <header class="dialog-header">
+<div>
+<h2 id="statusesTitle">管理状态</h2>
+<p>按你的投递流程排序。“填写”作为初始状态保留。</p>
+</div>
+<button id="closeStatuses" class="secondary" type="button">关闭</button>
+</header>
+    <form id="statusesForm">
+      <fieldset id="statusesFields">
+<legend class="visually-hidden">编辑状态定义</legend>
+        <div id="statusRows" class="status-rows">
+</div>
+        <div class="add-status">
+<label>新状态名称<input id="newStatusLabel" maxlength="40" placeholder="例如 二面、HR 面" />
+</label>
+<button id="addStatus" class="secondary" type="button">添加状态</button>
+</div>
+        <div id="statusMigrations">
+</div>
+        <p id="statusesFeedback" class="feedback" role="status" aria-live="polite">
+</p>
+        <div class="actions">
+<button type="submit">保存状态设置</button>
+<button id="reloadStatuses" class="secondary" type="button">重新加载状态</button>
+</div>
+      </fieldset>
+    </form>
+  </dialog>
+  <script src="./applications/page.mjs" type="module">
+</script>
+</body>
+</html>

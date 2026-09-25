@@ -52,6 +52,37 @@ els.openUpdateBtn.addEventListener("click", () => {
 });
 
 initialize();
+void loadApplicationRecords();
+document.getElementById("openApplications").addEventListener("click", () => {
+  void sendRuntimeMessage({ type: "OJAF_OPEN_APPLICATIONS" }).catch((error) => setStatus(error.message, true));
+});
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area === "local" && changes.applicationsV1) void loadApplicationRecords();
+});
+
+async function loadApplicationRecords() {
+  const hint = document.getElementById("applicationSiteHint");
+  const list = document.getElementById("recentApplications");
+  try {
+    const [tab] = await queryTabs({ active: true, currentWindow: true });
+    const hostname = tab?.url && /^https?:/.test(tab.url) ? new URL(tab.url).hostname : "";
+    list.replaceChildren();
+    if (!hostname) { hint.textContent = "打开招聘网页后，这里会显示该网站的最近记录。"; return; }
+    const store = await sendRuntimeMessage({ type: "OJAF_LIST_APPLICATIONS" });
+    const records = store.records.filter((record) => record.siteHost === hostname).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+    hint.textContent = records.length ? `${hostname} · ${records.length} 条记录，显示最近 3 条` : `${hostname} · 暂无记录，完成填写后会自动记录。`;
+    for (const record of records.slice(0, 3)) {
+      const row = document.createElement("li");
+      const button = document.createElement("button");
+      button.type = "button"; button.className = "application-link";
+      button.textContent = `${record.company || "公司待补全"} · ${record.position || "岗位待补全"}`;
+      button.addEventListener("click", () => void sendRuntimeMessage({ type: "OJAF_OPEN_APPLICATIONS", payload: { id: record.id } }).catch((error) => setStatus(error.message, true)));
+      const status = document.createElement("span");
+      status.textContent = store.statuses.find((status) => status.id === record.statusId)?.label || "未知状态";
+      row.append(button, status); list.append(row);
+    }
+  } catch (error) { hint.textContent = `记录读取失败：${error.message}`; }
+}
 
 async function initialize() {
   try {
@@ -474,7 +505,10 @@ function queryTabs(query) {
 
 function executeScript(tabId, file) {
   return new Promise((resolve, reject) => {
-    chrome.scripting.executeScript({ target: { tabId }, files: [file] }, () => {
+    const files = file === "src/content.js"
+      ? ["src/applications/context.js", "src/applications/capture.js", file]
+      : [file];
+    chrome.scripting.executeScript({ target: { tabId }, files }, () => {
       const error = chrome.runtime.lastError;
       if (error) {
         reject(new Error(error.message));

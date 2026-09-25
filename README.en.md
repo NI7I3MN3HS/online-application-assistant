@@ -1,60 +1,94 @@
-# OpenJobAutofill-FieldMemory
+# 网申助手 · Online Application Assistant
 
-[中文 README](README.md)
+[中文](README.md) · [Report an issue](https://github.com/NI7I3MN3HS/online-application-assistant/issues)
 
-An enhanced fork of the open-source [OpenJobAutofill](https://github.com/Br1an67/OpenJobAutofill) (MIT) that adds **Field Memory** on top of every official feature: the extension remembers which profile field a form field maps to, and fills it directly the next time it sees a field with the same label — no more re-asking local rules or the AI.
+<p align="center">
+  <img src="assets/logo.png" alt="网申助手 · Online Application Assistant" width="720" />
+</p>
 
-The official positioning is unchanged: a profile-based form filler. It never auto-submits, the AI only helps interpret field labels, and your resume values never leave your machine.
+A browser extension for local resume management and application form filling, with resume import, field memory, and application records. Maintain one profile, fill recruiting forms, then review and submit them yourself.
 
-## What this fork adds: Field Memory
+Current version: **v1.5.1**. Supports Chromium browsers such as Chrome, Edge, and Brave. Core features need no API key. The interface currently uses Chinese labels.
 
-Fields like "place of origin", "home university" or "preferred city" show up on every application site under slightly different names, and neither local rules nor the AI recognize them every time. Field Memory fixes exactly that:
+## Features
 
-- **Automatic learning**: whenever a field is successfully auto-filled, the mapping "form field label → profile field path" is stored. The next occurrence of the same label is filled directly.
-- **Learn from this page + one-click capture**: after you manually fill a page, click the new button in the popup. The extension reads the current page values, matches them against your local profile, and stores the mappings. Fields whose values are missing from the profile are listed in the popup together with the values you typed — tick them, click "Capture & re-learn", and the values are written into your local profile with an immediate re-learn (plain sections such as basic info; grouped sections like education or projects should still be added on the options page).
-- **Grouped-field learning**: labels that appear multiple times on one page (e.g. "school" in each of two education entries) are learnable too — when the values line up with grouped profile entries, the popup shows a confirmation list of "Nth occurrence → Nth entry"; tick and confirm, and the mapping is stored by order of occurrence so the whole group auto-fills next time. Successful order-based local pairings are also memorized automatically.
-- **Local management**: the options page offers an on/off toggle, the entry count, per-entry delete, and clear-all.
+- **Resume profile:** organize personal details, education, work, and projects, with multiple entries and extra fields.
+- **Resume import:** read PDF, DOCX, TXT, or pasted text, with local Chinese/English OCR for scanned PDFs. Review and select parsed fields before saving.
+- **Form filling:** match fields using local rules, field memory, and optional AI. Search and copy values from the in-page profile panel.
+- **Field memory:** learn successful matches or learn from manually completed pages, capture missing values, and confirm grouped fields.
+- **Application records:** record company, role, and source after filling; add, edit, filter, keep notes, and customize statuses manually.
 
-### Safety limits
+## Installation
 
-- Only the mapping "field label → profile path" plus light statistics (most recent site, success count) are stored — **never any profile values**, consistent with the project's privacy stance.
-- Fields that appear more than once on the same page (e.g. "school" across multiple education entries) are never written to ordinary single-value memory, preventing misplacement; only an explicit "grouped learning" confirmation in the popup — or a successful order-based local pairing — writes occurrence-indexed keys (Nth occurrence → Nth entry).
-- Memory candidates still pass the upstream semantic-compatibility checks; category conflicts are rejected. Memory only fills gaps and never overrides local-rule or AI matches.
-- "Learn from this page" skips upload/file/photo/password fields and skips ambiguous multi-value matches, reporting them instead.
-- "Capture" is an explicit, opt-in action: only ticked fields have their values written into the local profile, plain (simple) sections only with an "other information" fallback; the memory itself still stores mappings only, never values.
-- Capacity is capped at 500 entries with least-recently-used eviction.
+1. Download and extract a complete package from [this repository](https://github.com/NI7I3MN3HS/online-application-assistant), or clone the source.
+2. Open `chrome://extensions/`, `edge://extensions/`, or `brave://extensions/`.
+3. Enable **Developer mode** and click **Load unpacked**.
+4. Select the directory directly containing `manifest.json`, then pin the extension.
 
-## Installation (developer mode)
-
-1. Download or clone this repository.
-2. Open `chrome://extensions/` (or `brave://extensions/` on Brave).
-3. Enable `Developer mode`, click `Load unpacked`, and select this repository's directory.
-4. Pin the extension icon, fill in your profile on the options page, and you are ready.
-
-No dependencies, no build step.
+No build, Node.js, or Python installation is required. Keep all installation files and `vendor/` dependencies intact, and keep the directory in a permanent location.
 
 ## Usage
 
-Identical to official OpenJobAutofill (see the upstream [README](https://github.com/Br1an67/OpenJobAutofill)): maintain your local profile → open a job-application form → click "Start autofill" in the popup → review the green (filled) / orange (pending) marks → confirm and submit yourself.
+1. Open **简历资料** (Resume Profile), enter information or choose **导入简历** (Import Resume), then review and save.
+2. Open a recruiting site's application form, click the extension icon, then **开始填写** (Start Filling).
+3. Check the results: **green means filled; orange means needs attention**. Complete remaining fields and upload attachments yourself.
+4. Review the company and role in the bottom-right record card, complete missing information, and save.
+5. Submit the website form yourself, then manually change the record to **已投递** (Submitted).
 
-The new flow: after manually filling a site for the first time, click "Learn from this page" once — the site's particular field naming gets memorized and future autofills cover it automatically. If some page values are not yet in your profile, a "Capture into profile" checklist appears in the popup: tick the fields, and they are written into the profile with an automatic re-learn — no detour to the options page.
+Click Start Filling again for another page or form step. The extension does not submit applications automatically. To try it with example data, import [sample-profile.json](sample-profile.json) through the profile backup interface.
 
-The AI is optional: everything works without an API (local rules + field memory); configuring an OpenAI-compatible API improves recognition. AI requests contain field names only, never profile values.
+### Resume import
 
-## ⚠️ About updates
+Compare parsed fields with the source, edit them, and select what to save. Existing values are preserved and empty fields filled by default; you can choose to overwrite selected fields. New experiences are appended and duplicates skipped. You can undo the latest import unless subsequent profile edits prevent it.
 
-The built-in update check points at the upstream repository's releases. **Installing an official package over this fork will remove the field memory feature** (your profile data itself stays in browser storage). To keep field memory, update from this repository.
+Files are limited to 10 MB; PDFs to 30 pages, including at most 10 OCR pages; text to 200,000 characters. Convert legacy `.doc` files to `.docx`, convert standalone images to PDF, and remove PDF password protection first. Review scans and complex layouts carefully.
 
-## Contact
+### Field Memory
 
-For questions or suggestions about the field memory feature, email <1445668509@qq.com> or open an issue in this repository.
+Confirmed mappings are saved after successful filling. After completing a page manually, click **从本页学习** (Learn from This Page) and select missing ordinary values to capture. Repeated fields require confirmation of the corresponding experience order.
 
-## Relationship to upstream
+Memory stores field mappings and usage statistics, not resume values. Enable, disable, delete individual entries, or clear all; capacity is 500 entries. Ambiguous matches are skipped, and upload and password fields are excluded from learning.
 
-- Base: upstream `main` (`005eda9`, the line after v1.0.2), with roughly 490 added lines that do not alter any official behavior.
-- See the commit history for the exact changes; a PR has been submitted upstream as well.
-- Credit for the original work goes to [Br1an67](https://github.com/Br1an67).
+### Application records
 
-## License
+A record is saved after at least one successful field fill. Uncertain company or role details display **待补全** (Incomplete) and can be edited. Repeated fills update existing records while preserving manual edits, status, and notes. Add a separate manual record for another application attempt.
 
-[MIT](LICENSE), Copyright Br1an67 and this fork's contributors.
+New records always start at **填写** (Filled) and never automatically become Submitted. Default statuses are Filled, Submitted, Written Test, Interview, Offer, Rejected, and Withdrawn, with support for customization. Deleting a status in use requires a migration target. Creation and last-filled times are not submission times.
+
+## Optional AI
+
+Under **设置 → API 页面分析** (Settings → API Page Analysis), configure an OpenAI-compatible or custom API with its endpoint, model, and credentials. Save the configuration after testing the connection.
+
+Local rules and field memory work without an API. AI requests contain the field catalog, form structure, and related page context without attaching actual local resume values. Requests go to your configured provider.
+
+## Data and privacy
+
+- Profiles, field memory, application records, and API keys use the current browser's local extension storage.
+- Resume parsing and OCR run locally without uploading resume files or parsed source text.
+- Scanning and filling are triggered by user actions without monitoring browsing history. Optional AI contacts your selected endpoint; update checks contact GitHub.
+- Values entered into a page can be read by that website. Review them before submitting.
+
+Import or export profile JSON under **设置 → 数据与备份** (Settings → Data and Backup). **Backups exclude application records and field memory, which currently have no separate export interface.** Clear Profile and API Settings preserves application records and field memory.
+
+## Updates
+
+Get updates from [this repository](https://github.com/NI7I3MN3HS/online-application-assistant). Back up your profile, close extension pages, replace files in the original installation directory, click **Reload** in the extension manager, and refresh recruiting pages. Preserve the original directory and browser profile to avoid losing access to data through uninstallation or duplicate installation.
+
+The built-in update checker reads this project's GitHub Releases.
+
+## Documentation and feedback
+
+- [Resume parsing notes (Chinese)](docs/resume-parser-selection.md)
+- [Application records guide (Chinese)](docs/application-records.md)
+- [Development and packaging](docs/development.en.md)
+
+Report bugs and suggestions in [Issues](https://github.com/NI7I3MN3HS/online-application-assistant/issues), including the website, browser version, and reproduction steps. Remove personal information from screenshots.
+
+## Credits and license
+
+- [Br1an67](https://github.com/Br1an67): profile management, form filling, and optional AI analysis.
+- [zhangqiyuan24](https://github.com/zhangqiyuan24) and Field Memory contributors: mapping memory, page learning, and profile capture.
+
+Thanks to everyone contributing code, tests, and issue reports.
+
+Licensed under [MIT](LICENSE), with original copyright notices and the complete license text retained. Dependencies and fonts follow their respective licenses; see the [third-party notices](vendor/THIRD_PARTY_NOTICES.md).

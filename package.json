@@ -1,0 +1,17 @@
+{
+  "name": "online-application-assistant",
+  "private": true,
+  "version": "1.5.1",
+  "description": "Development tools for the unpacked browser extension; no build needed to install.",
+  "scripts": {
+    "test": "node --test tests/*.test.mjs",
+    "vendor:resume": "node scripts/vendor-resume.mjs",
+    "package": "python3 scripts/package.py"
+  },
+  "devDependencies": {
+    "@gutenye/ocr-models": "1.4.2",
+    "mammoth": "1.12.3",
+    "onnxruntime-web": "1.30.0",
+    "pdfjs-dist": "6.3.289"
+  }
+}

@@ -1,9 +1,12 @@
 {
   "manifest_version": 3,
-  "name": "OpenJobAutofill",
-  "version": "1.3.0",
-  "description": "Local resume profile helper with privacy-first AI page analysis and one-click form filling.",
-  "homepage_url": "https://github.com/Br1an67/OpenJobAutofill",
+  "content_security_policy": {
+    "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'"
+  },
+  "name": "网申助手",
+  "version": "1.5.1",
+  "description": "本地简历管理与网申填表助手，支持简历解析、OCR、字段记忆和投递记录。",
+  "homepage_url": "https://github.com/NI7I3MN3HS/online-application-assistant",
   "permissions": [
     "activeTab",
     "alarms",
@@ -28,7 +31,7 @@
     "type": "module"
   },
   "action": {
-    "default_title": "OpenJobAutofill",
+    "default_title": "网申助手",
     "default_popup": "src/popup.html",
     "default_icon": {
       "16": "icons/icon16.png",
@@ -37,5 +40,16 @@
       "128": "icons/icon128.png"
     }
   },
-  "options_page": "src/options.html"
+  "options_page": "src/options.html",
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "icons/icon32.png"
+      ],
+      "matches": [
+        "http://*/*",
+        "https://*/*"
+      ]
+    }
+  ]
 }

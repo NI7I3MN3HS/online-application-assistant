@@ -1,5 +1,5 @@
 (() => {
-  const SCRIPT_VERSION = "0.8.7-ai-first-cn";
+  const SCRIPT_VERSION = "1.5.1-brand";
 
   if (window.__OJAF_AUTOFILL_VERSION__ === SCRIPT_VERSION) {
     return;
@@ -1283,6 +1283,10 @@
   }
 
   function findFieldContainer(element) {
+    const wrappingLabel = element.closest("label");
+    if (wrappingLabel && wrappingLabel.querySelectorAll(CONTROL_SELECTOR).length === 1) {
+      return wrappingLabel;
+    }
     const adapterSelectors = getAdapterSelectors();
     if (adapterSelectors.containerSelector) {
       const container = element.closest(adapterSelectors.containerSelector);
@@ -1510,11 +1514,11 @@
   function getControlContextLabel(control) {
     const container = findFieldContainer(control);
     return normalizeFieldLabelText(
-      extractFieldContainerLabel(container) ||
+      getLabelByFor(control) ||
+        getWrappingLabel(control) ||
+        extractFieldContainerLabel(container) ||
         getDataAttributeLabelText(control) ||
         getAdapterLabelText(control) ||
-        getLabelByFor(control) ||
-        getWrappingLabel(control) ||
         getAriaLabelText(control) ||
         ""
     );
@@ -1716,6 +1720,13 @@
   }
 
   function getSectionText(element) {
+    // A native section is an explicit boundary; earlier sibling sections must
+    // not turn every education/work field into “基本信息”.
+    const scopedSection = element.closest("section,fieldset");
+    const scopedHeading = scopedSection?.querySelector(":scope > h2,:scope > h3,:scope > legend");
+    if (scopedHeading) {
+      return normalizeText(getElementText(scopedHeading), 180);
+    }
     const parts = [];
     const elementRect = element.getBoundingClientRect();
     const adapterSelectors = getAdapterSelectors();
@@ -1949,9 +1960,9 @@
     const rawLabel = normalizeText(
       getLabelByFor(element) ||
         getDataAttributeLabelText(element) ||
-        getAdapterLabelText(element) ||
         getWrappingLabel(element) ||
-        getAriaLabelText(element)
+        getAriaLabelText(element) ||
+        getAdapterLabelText(element)
     );
     const nearbyText = getNearbyText(element);
     const label = improveFieldLabel(element, rawLabel, nearbyText);
@@ -2141,14 +2152,12 @@
         width: min(360px, calc(100vw - 36px));
         padding: 14px;
         border: 1px solid rgba(38, 58, 44, 0.14);
-        border-radius: 18px;
-        background:
-          linear-gradient(180deg, rgba(255, 253, 247, 0.98), rgba(249, 244, 234, 0.96)),
-          radial-gradient(circle at 0% 0%, rgba(15, 107, 79, 0.13), transparent 42%);
-        box-shadow: 0 18px 58px rgba(32, 33, 36, 0.18);
+        border-radius: 4px;
+        background: #FDFCFA;
+        box-shadow: 0 16px 40px -8px rgba(24,23,21,.07);
         z-index: 2147483645;
-        color: #202124;
-        font: 13px/1.45 ui-serif, Georgia, "Times New Roman", "Noto Serif SC", serif;
+        color: #181715;
+        font: 13px/1.6 system-ui, -apple-system, "PingFang SC", sans-serif;
       }
       #${FLOAT_ID}[hidden] {
         display: none;
@@ -2163,20 +2172,20 @@
         gap: 10px;
       }
       #${FLOAT_ID} .arf-float-title {
-        color: #26231e;
+        color: #181715;
         font-size: 15px;
         font-weight: 700;
       }
       #${FLOAT_ID} .arf-float-detail {
         margin-top: 3px;
-        color: #6f6a60;
+        color: #6E6A62;
         font-size: 12px;
       }
       #${FLOAT_ID} .arf-float-privacy {
         margin-top: 8px;
         padding: 8px 10px;
         border: 1px solid rgba(15, 107, 79, 0.14);
-        border-radius: 12px;
+        border-radius: 4px;
         background: rgba(15, 107, 79, 0.07);
         color: #4d6458;
         font-size: 11px;
@@ -2188,9 +2197,9 @@
         gap: 6px;
         margin-top: 8px;
         padding: 6px 10px;
-        border-radius: 999px;
+        border-radius: 4px;
         background: rgba(15, 107, 79, 0.12);
-        color: #0f6b4f;
+        color: #181715;
         font-size: 11px;
         font-weight: 700;
         line-height: 1.3;
@@ -2199,10 +2208,10 @@
         width: 26px;
         min-width: 26px;
         height: 26px;
-        border: 1px solid #ded6c8;
-        border-radius: 9px;
+        border: 1px solid #E5DFCE;
+        border-radius: 4px;
         background: #fff;
-        color: #4b463f;
+        color: #3D3A35;
         cursor: pointer;
       }
       #${FLOAT_ID} .arf-float-progress {
@@ -2211,14 +2220,14 @@
       #${FLOAT_ID} .arf-float-track {
         height: 8px;
         overflow: hidden;
-        border-radius: 999px;
+        border-radius: 4px;
         background: rgba(15, 107, 79, 0.12);
       }
       #${FLOAT_ID} .arf-float-fill {
         width: 0%;
         height: 100%;
-        border-radius: inherit;
-        background: linear-gradient(90deg, #0f6b4f, #d48a1f);
+        border-radius: 4px;
+        background: #FDFCFA;
         transition: width 0.25s ease;
       }
       #${FLOAT_ID} .arf-float-chips {
@@ -2229,22 +2238,22 @@
       }
       #${FLOAT_ID} .arf-float-chip {
         padding: 8px;
-        border-radius: 12px;
+        border-radius: 4px;
         background: rgba(255, 255, 255, 0.74);
-        color: #6f6a60;
+        color: #6E6A62;
         text-align: center;
       }
       #${FLOAT_ID} .arf-float-chip strong {
         display: block;
-        color: #26231e;
+        color: #181715;
         font-size: 18px;
         line-height: 1.1;
       }
       #${FLOAT_ID} .arf-float-chip.is-ok strong {
-        color: #0f6b4f;
+        color: #181715;
       }
       #${FLOAT_ID} .arf-float-chip.is-warn strong {
-        color: #bf7a18;
+        color: #B38B4D;
       }
       #${FLOAT_ID} .arf-float-actions {
         display: flex;
@@ -2255,15 +2264,15 @@
         flex: 1;
         min-height: 34px;
         border: 0;
-        border-radius: 11px;
-        background: #0f6b4f;
+        border-radius: 4px;
+        background: #181715;
         color: #fff;
         cursor: pointer;
       }
       #${FLOAT_ID} .arf-float-actions button.secondary {
-        border: 1px solid #0f6b4f;
+        border: 1px solid #181715;
         background: transparent;
-        color: #0f6b4f;
+        color: #181715;
       }
       #${PANEL_ID} {
         position: fixed;
@@ -2279,14 +2288,12 @@
         padding: 16px 16px max(18px, env(safe-area-inset-bottom));
         border: 0;
         border-left: 1px solid rgba(38, 58, 44, 0.16);
-        border-radius: 18px 0 0 18px;
-        background:
-          linear-gradient(180deg, rgba(255, 253, 247, 0.99), rgba(250, 246, 236, 0.98)),
-          radial-gradient(circle at 10% 0%, rgba(15, 107, 79, 0.1), transparent 32%);
-        box-shadow: -18px 0 48px rgba(34, 34, 34, 0.16);
+        border-radius: 4px;
+        background: #FDFCFA;
+        box-shadow: 0 16px 40px -8px rgba(24,23,21,.07);
         z-index: 2147483646;
         font-size: 13px;
-        color: #202124;
+        color: #181715;
         overflow: hidden;
       }
       @supports not (height: 100dvh) {
@@ -2305,7 +2312,7 @@
         padding: 6px;
         border: 1px solid rgba(38, 58, 44, 0.16);
         border-right: 0;
-        border-radius: 14px 0 0 14px;
+        border-radius: 4px;
       }
       #${PANEL_ID}[${PANEL_COLLAPSED_ATTR}="true"] .arf-body,
       #${PANEL_ID}[${PANEL_COLLAPSED_ATTR}="true"] .arf-footer,
@@ -2355,14 +2362,14 @@
       }
       #${PANEL_ID} .arf-subtitle {
         margin-top: 2px;
-        color: #6f6a60;
+        color: #6E6A62;
         line-height: 1.45;
       }
       #${PANEL_ID} .arf-close {
         width: 28px;
         min-height: 28px;
-        border: 1px solid #ded6c8;
-        border-radius: 8px;
+        border: 1px solid #E5DFCE;
+        border-radius: 4px;
         background: #fff;
         color: #333;
       }
@@ -2375,8 +2382,8 @@
         height: 28px;
         min-height: 28px;
         padding: 0;
-        border: 1px solid #ded6c8;
-        border-radius: 8px;
+        border: 1px solid #E5DFCE;
+        border-radius: 4px;
         background: #fff;
         color: #333;
         cursor: pointer;
@@ -2391,10 +2398,10 @@
         width: 100%;
         min-height: 40px;
         padding: 0 12px;
-        border: 1px solid #ded6c8;
-        border-radius: 13px;
-        background: #fffdf8;
-        color: #202124;
+        border: 1px solid #E5DFCE;
+        border-radius: 4px;
+        background: #FDFCFA;
+        color: #181715;
         font: inherit;
       }
       #${PANEL_ID} .arf-content {
@@ -2413,25 +2420,25 @@
         gap: 8px;
         width: 100%;
         padding: 14px;
-        border: 1px solid #e2d8c8;
-        border-radius: 16px;
+        border: 1px solid #F0ECE1;
+        border-radius: 4px;
         background: rgba(255, 255, 255, 0.74);
-        color: #202124;
+        color: #181715;
         text-align: left;
         cursor: pointer;
       }
       #${PANEL_ID} .arf-category-card:hover {
         border-color: rgba(15, 107, 79, 0.35);
-        background: #fffdf8;
+        background: #FDFCFA;
       }
       #${PANEL_ID} .arf-category-title {
         font-size: 15px;
         font-weight: 700;
-        color: #26231e;
+        color: #181715;
       }
       #${PANEL_ID} .arf-category-note {
         margin-top: 5px;
-        color: #7a7164;
+        color: #6E6A62;
         font-size: 12px;
         line-height: 1.45;
       }
@@ -2439,9 +2446,9 @@
         align-self: start;
         min-width: 34px;
         padding: 4px 8px;
-        border-radius: 999px;
+        border-radius: 4px;
         background: rgba(15, 107, 79, 0.12);
-        color: #0f6b4f;
+        color: #181715;
         font-size: 12px;
         font-weight: 700;
         text-align: center;
@@ -2454,15 +2461,15 @@
         align-items: center;
         gap: 8px;
         padding: 8px 0 4px;
-        background: linear-gradient(180deg, rgba(255, 253, 247, 0.99), rgba(255, 253, 247, 0.88));
+        background: #FDFCFA;
       }
       #${PANEL_ID} .arf-back {
         min-height: 32px;
         padding: 0 11px;
-        border: 1px solid #ded6c8;
-        border-radius: 10px;
+        border: 1px solid #E5DFCE;
+        border-radius: 4px;
         background: #fff;
-        color: #4b463f;
+        color: #3D3A35;
         cursor: pointer;
       }
       #${PANEL_ID} .arf-detail-title {
@@ -2471,13 +2478,13 @@
       }
       #${PANEL_ID} .arf-detail-card {
         padding: 14px;
-        border: 1px solid #e2d8c8;
-        border-radius: 16px;
+        border: 1px solid #F0ECE1;
+        border-radius: 4px;
         background: rgba(255, 255, 255, 0.78);
       }
       #${PANEL_ID} .arf-subsection-title {
         margin: 2px 0 10px;
-        color: #0f6b4f;
+        color: #181715;
         font-size: 13px;
         font-weight: 700;
       }
@@ -2498,23 +2505,23 @@
         padding-top: 0;
       }
       #${PANEL_ID} .arf-row-label {
-        color: #7a7164;
+        color: #6E6A62;
         font-size: 12px;
       }
       #${PANEL_ID} .arf-row-value {
-        color: #26231e;
+        color: #181715;
         white-space: pre-wrap;
         word-break: break-word;
       }
       #${PANEL_ID} .arf-row-value.is-empty {
-        color: #aaa196;
+        color: #6E6A62;
       }
       #${PANEL_ID} .arf-empty {
         padding: 12px;
-        border: 1px dashed #ded6c8;
-        border-radius: 12px;
-        color: #6f6a60;
-        background: #fffdf8;
+        border: 1px dashed #E5DFCE;
+        border-radius: 4px;
+        color: #6E6A62;
+        background: #FDFCFA;
         line-height: 1.5;
       }
       #${PANEL_ID} .arf-footer {
@@ -2524,7 +2531,7 @@
         flex-shrink: 0;
         padding: 8px 0 0;
         border-top: 1px solid rgba(231, 223, 209, 0.9);
-        background: linear-gradient(180deg, rgba(250, 246, 236, 0), rgba(250, 246, 236, 0.98) 18%);
+        background: #FDFCFA;
       }
       #${PANEL_ID} .arf-actions {
         display: grid;
@@ -2534,25 +2541,25 @@
       #${PANEL_ID} .arf-actions button {
         min-height: 34px;
         border: 0;
-        border-radius: 10px;
-        background: #0f6b4f;
+        border-radius: 4px;
+        background: #181715;
         color: #fff;
         cursor: pointer;
       }
       #${PANEL_ID} .arf-actions button.secondary {
-        background: #eaf2ed;
-        color: #0f6b4f;
+        background: #F0ECE1;
+        color: #181715;
       }
       #${PANEL_ID} .arf-actions button.ghost {
-        background: #f5f1e8;
-        color: #4b463f;
+        background: #F8F6F0;
+        color: #3D3A35;
       }
       #${PANEL_ID} .arf-actions button:disabled {
         cursor: not-allowed;
         opacity: 0.5;
       }
       #${PANEL_ID} .arf-meta {
-        color: #6f6a60;
+        color: #6E6A62;
         font-size: 12px;
         line-height: 1.45;
       }
@@ -2567,14 +2574,14 @@
       #${PANEL_ID} .arf-progress-track {
         height: 8px;
         overflow: hidden;
-        border-radius: 999px;
+        border-radius: 4px;
         background: rgba(15, 107, 79, 0.12);
       }
       #${PANEL_ID} .arf-progress-fill {
         width: 0%;
         height: 100%;
-        border-radius: inherit;
-        background: linear-gradient(90deg, #0f6b4f, #d48a1f);
+        border-radius: 4px;
+        background: #FDFCFA;
         transition: width 0.25s ease;
       }
       #${PANEL_ID} .arf-progress-meta {
@@ -2582,7 +2589,7 @@
         align-items: center;
         justify-content: space-between;
         gap: 8px;
-        color: #6f6a60;
+        color: #6E6A62;
         font-size: 11px;
         line-height: 1.35;
       }
@@ -2593,6 +2600,41 @@
         text-overflow: ellipsis;
         white-space: nowrap;
       }
+
+      #${FLOAT_ID}, #${PANEL_ID} { box-sizing:border-box; font-family: system-ui, -apple-system, "PingFang SC", sans-serif; color: #181715; border: 1px solid #E5DFCE; background:#FDFCFA; }
+      #${PANEL_ID} { width:min(390px,calc(100vw - 32px)); right:16px; top:16px; height:calc(100dvh - 32px); max-height:calc(100dvh - 32px); padding:24px; }
+      #${FLOAT_ID} { width:min(390px,calc(100vw - 32px)); right:16px; bottom:16px; padding:20px; }
+      #${FLOAT_ID} button, #${PANEL_ID} button { font:12px/1.5 system-ui,sans-serif; }
+      #${FLOAT_ID} .arf-float-title, #${PANEL_ID} .arf-title, #${PANEL_ID} .arf-detail-title { font:400 22px/1.4 "Noto Serif SC","Songti SC",Georgia,serif; }
+      #${FLOAT_ID} .arf-float-title::before, #${PANEL_ID} .arf-title::before { content:'';display:inline-block;background:url("${chrome.runtime.getURL('icons/icon32.png')}") center/contain no-repeat;width:26px;height:26px;margin-right:10px;vertical-align:middle; }
+      #${PANEL_ID} .arf-search { border-width:0 0 1px;border-radius:0;background:none;padding:8px 0; }
+      #${PANEL_ID} .arf-category-card { border:0;border-bottom:1px solid #F0ECE1;border-radius:0;background:none;padding:14px 0; }
+      #${PANEL_ID} .arf-category-title { font-size:13px;font-weight:500; }
+      #${PANEL_ID} .arf-category-count { background:none;color:#6E6A62;font-weight:400; }
+      #${PANEL_ID} .arf-detail-card { border:0;border-bottom:1px solid #F0ECE1;border-radius:0;padding:16px 0; }
+      #${PANEL_ID} .arf-detail-head, #${PANEL_ID} .arf-footer { background:#FDFCFA; }
+      #${PANEL_ID} .arf-row { border-top:1px solid #F0ECE1; }
+      #${PANEL_ID} .arf-subsection-title { font-weight:500; }
+      #${PANEL_ID} .arf-progress-track, #${FLOAT_ID} .arf-float-track { height:4px;background:#E5DFCE; }
+      #${PANEL_ID} .arf-progress-fill, #${FLOAT_ID} .arf-float-fill { background:#181715; }
+      #${FLOAT_ID} .arf-float-privacy { padding:8px 0;border:0;background:none;color:#6E6A62; }
+      #${FLOAT_ID} .arf-float-ai { padding:0;background:none;color:#6E6A62;font-weight:400; }
+      #${FLOAT_ID} .arf-float-chip { padding:0;background:none;text-align:left; }
+      #${FLOAT_ID} .arf-float-chip strong { display:inline;font-size:14px;margin-right:6px; }
+      #${FLOAT_ID} .arf-float-chip.is-ok strong { color:#556B4F; }
+      #${FLOAT_ID} :focus-visible, #${PANEL_ID} :focus-visible { outline:2px solid #3D3A35;outline-offset:2px; }
+      #${FLOAT_ID} ::selection, #${PANEL_ID} ::selection { background:#E5DFCE; }
+      /* Keep independently opened panels usable; neither obscures the other. */
+      html:has(#ojaf-application-record) #${FLOAT_ID} { right:16px; bottom:calc(var(--ojaf-application-card-height, 540px) + 32px); }
+      html:has(#ojaf-application-record) #${PANEL_ID}:not([${PANEL_HIDDEN_ATTR}="true"]) { right:422px; }
+      html:has(#${PANEL_ID}:not([${PANEL_HIDDEN_ATTR}="true"]):not([${PANEL_COLLAPSED_ATTR}="true"])) #${FLOAT_ID} { display:none; }
+      @media(max-height:900px) { html:has(#ojaf-application-record) #${FLOAT_ID} { display:none; } }
+      @media(max-width:840px) {
+        html:has(#ojaf-application-record) #${PANEL_ID}:not([${PANEL_HIDDEN_ATTR}="true"]) { right:16px; }
+        html:has(#ojaf-application-record) #${FLOAT_ID} { display:none; }
+        html:has(#${PANEL_ID}:not([${PANEL_HIDDEN_ATTR}="true"]):not([${PANEL_COLLAPSED_ATTR}="true"])) #ojaf-application-record { display:none!important; }
+      }
+      @media(prefers-reduced-motion:reduce) { #${FLOAT_ID} *, #${PANEL_ID} * { transition:none!important; } }
     `;
     document.documentElement.appendChild(style);
   }
@@ -2794,7 +2836,7 @@
     const titleWrap = document.createElement("div");
     const title = document.createElement("div");
     title.className = "arf-title";
-    title.textContent = "OpenJobAutofill";
+    title.textContent = "资料面板";
     const subtitle = document.createElement("div");
     subtitle.className = "arf-subtitle";
     subtitle.dataset.role = "subtitle";
@@ -3191,16 +3233,14 @@
     if (!values || typeof values !== "object") {
       return;
     }
-    let index = 0;
     for (const [label, value] of Object.entries(values)) {
       appendProfileV2Entry(section, {
         label,
         value,
         subsection: context.subsection,
         familyRelation: context.familyRelation,
-        itemId: `${context.prefix}[${index}]`
+        itemId: `${context.prefix}[${JSON.stringify(label)}]`
       });
-      index += 1;
     }
   }
 
@@ -3929,7 +3969,7 @@
     if (/证明人姓名|证明人|推荐人/.test(key)) {
       return "referenceName";
     }
-    if (/手机号码|手机号|手机|联系电话|电话号码/.test(key)) {
+    if (/手机号码|手机号|手机|联系电话|电话号码|^电话$/.test(key)) {
       return "phone";
     }
     if (/微信|wechat/.test(key)) {
@@ -3992,8 +4032,11 @@
     if (/学号|学生证号/.test(key)) {
       return "studentId";
     }
-    if (/学校名称|毕业院校|院校名称/.test(key)) {
+    if (/学校名称|毕业院校|院校名称|^学校$/.test(key)) {
       return "school";
+    }
+    if (/专业课程|主修课程|核心课程/.test(key)) {
+      return "coursework";
     }
     if (/院系|学院名称/.test(key)) {
       return "department";
@@ -4010,7 +4053,7 @@
     if (/部门/.test(key)) {
       return "department";
     }
-    if (/职务|岗位|职位名称/.test(key)) {
+    if (/职务|岗位|职位名称|^职位$/.test(key)) {
       return "role";
     }
     if (/籍贯省/.test(key)) {
@@ -4270,7 +4313,7 @@
 
   function getFirstSemanticBucket(parts, category = "") {
     for (const part of parts || []) {
-      const bucket = getSemanticBucket(part, category);
+      const bucket = getSemanticBucket(part, category) || getSemanticBucket(part);
       if (bucket) {
         return bucket;
       }
@@ -4562,8 +4605,11 @@
       }
 
       const text = getTextWithoutControls(current);
-      if (isRepeatItemRootCandidate(current)) {
+      if (!best && isRepeatItemRootCandidate(current)) {
         best = current;
+      }
+      if (current.matches("section,fieldset,form")) {
+        break;
       }
       if (/家庭|社会关系|亲属/.test(text) && isRepeatItemRootCandidate(current)) {
         return current;
@@ -4585,6 +4631,10 @@
   }
 
   function getEntryOccurrenceIndex(entry) {
+    const pathIndex = String(entry?.itemId || "").match(/\.items\[(\d+)\]/);
+    if (pathIndex) {
+      return Number(pathIndex[1]) + 1;
+    }
     const text = normalizeText([entry?.subsection, entry?.category].filter(Boolean).join(" "), 120);
     const match = text.match(/(?:经历|信息|证书|奖惩|家庭|教育|工作\/实习|实习|项目|社团|学生工作)?\s*(\d+)/);
     if (!match) {
@@ -4678,7 +4728,7 @@
       return 0;
     }
 
-    if (isExplanatoryField(fieldText) && !isExplanatoryEntry(entryText)) {
+    if (isExplanatoryField(compactText([fieldLabel, field.placeholder].join(" "))) && !isExplanatoryEntry(entryText)) {
       return 0;
     }
 
@@ -5807,6 +5857,11 @@
       return { ok: false, reason: "busy" };
     }
 
+    let applicationSnapshot = null;
+    try {
+      applicationSnapshot = globalThis.OJAFApplicationRecorder?.begin(runId) || null;
+    } catch { /* Metadata recognition must never block filling. */ }
+
     try {
       clearMarks();
       setProfilePanelStatus("正在扫描页面并准备一键填写...");
@@ -5846,7 +5901,7 @@
 
       setAutofillProgress("填写匹配项", 94, `本地准备填写 ${autoFillIds.size} 项`);
       const beforeCount = autoFillIds.size;
-      const fillResult = await applyAutofillPlan(plan, autoFillIds, { runId });
+      const fillResult = await applyAutofillPlan(plan, autoFillIds, { runId, applicationSnapshot });
       if (profilePanelVisible) {
         renderProfilePanel();
       }
@@ -5950,6 +6005,12 @@
     setProfilePanelStatus(`已自动填写 ${filledCount} 项，待处理 ${summary.pending} 项。`);
     setAutofillSummary(summary);
     updateAutofillDebugResults(summary, results);
+    // The content script owns completion, so closing the extension popup cannot
+    // cancel automatic recording. Record failures are handled by the card.
+    if (filledCount > 0 && options.applicationSnapshot) {
+      try { await globalThis.OJAFApplicationRecorder?.complete(options.applicationSnapshot, filledCount); }
+      catch { /* Keep the original filling outcome even if the card cannot mount. */ }
+    }
     await persistProfilePanelState(getProfilePanelStateSnapshot());
     return {
       ok: true,
@@ -6608,7 +6669,7 @@
     panel.setAttribute(PANEL_COLLAPSED_ATTR, profilePanelCollapsed ? "true" : "false");
     if (collapseBtn) {
       collapseBtn.textContent = profilePanelCollapsed ? "资料" : "收起";
-      collapseBtn.title = profilePanelCollapsed ? "展开 OpenJobAutofill 资料面板" : "收起 OpenJobAutofill 资料面板";
+      collapseBtn.title = profilePanelCollapsed ? "展开网申助手资料面板" : "收起网申助手资料面板";
     }
     if (copyCategoryBtn) {
       copyCategoryBtn.disabled = !activeSection;

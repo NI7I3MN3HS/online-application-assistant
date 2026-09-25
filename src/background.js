@@ -1,3 +1,7 @@
+import { createApplicationRepository, recordFill, saveRecord, deleteRecord, saveStatuses, applicationError } from "./applications/model.mjs";
+
+const applicationRepository = createApplicationRepository(chrome.storage.local);
+
 const DEFAULT_API_CONFIG = {
   mode: "openai-compatible",
   baseUrl: "https://api.openai.com/v1",
@@ -41,7 +45,26 @@ async function getFieldMemory() {
   if (!store || typeof store !== "object" || !store.entries || typeof store.entries !== "object") {
     return createDefaultFieldMemory();
   }
+  if (migrateFieldMemoryPaths(store)) {
+    await saveFieldMemory(store);
+  }
   return { enabled: store.enabled !== false, entries: store.entries };
+}
+
+function migrateFieldMemoryPaths(store) {
+  let changed = false;
+  for (const entry of Object.values(store.entries || {})) {
+    const path = String(entry?.sourcePath || "");
+    const label = String(entry?.sourceLabel || "").trim();
+    // Chrome storage may reorder object keys. An ordinal values[2] cannot be a
+    // durable field ID. The original source label is already stored alongside
+    // each learned mapping, so migration does not need any personal values.
+    if (label && path.startsWith("profileV2.sections.") && /\.values\[\d+\]$/.test(path)) {
+      entry.sourcePath = path.replace(/\.values\[\d+\]$/, () => `.values[${JSON.stringify(label)}]`);
+      changed = true;
+    }
+  }
+  return changed;
 }
 
 async function saveFieldMemory(store) {
@@ -225,7 +248,7 @@ const PROFILE_PANEL_STATE_KEY = "OJAF_PROFILE_PANEL_STATE";
 const MAX_PROFILE_PANEL_STATE_ITEMS = 20;
 const UPDATE_ALARM_NAME = "OJAF_CHECK_RELEASE_UPDATE";
 const UPDATE_CHECK_INTERVAL_MINUTES = 12 * 60;
-const UPDATE_REPOSITORY = "Br1an67/OpenJobAutofill";
+const UPDATE_REPOSITORY = "NI7I3MN3HS/online-application-assistant";
 const UPDATE_LATEST_RELEASE_API = `https://api.github.com/repos/${UPDATE_REPOSITORY}/releases/latest`;
 const UPDATE_RELEASES_URL = `https://github.com/${UPDATE_REPOSITORY}/releases`;
 
@@ -271,25 +294,57 @@ chrome.alarms?.onAlarm.addListener((alarm) => {
 void setupUpdateAlarm().catch(() => undefined);
 void refreshUpdateBadge().catch(() => undefined);
 
-chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (!message || typeof message.type !== "string" || !message.type.startsWith("OJAF_")) {
     return undefined;
   }
 
-  handleMessage(message)
+  handleMessage(message, sender)
     .then((data) => sendResponse({ ok: true, data }))
     .catch((error) => {
       sendResponse({
         ok: false,
-        error: error instanceof Error ? error.message : String(error)
+        error: error instanceof Error ? error.message : String(error),
+        code: error.code || ""
       });
     });
 
   return true;
 });
 
-async function handleMessage(message) {
+async function handleMessage(message, sender = {}) {
   switch (message.type) {
+    case "OJAF_LIST_APPLICATIONS":
+      return applicationRepository.list();
+    case "OJAF_GET_APPLICATION": {
+      const store = await applicationRepository.list();
+      return { record: store.records.find((record) => record.id === message.payload?.id) || null, statuses: store.statuses };
+    }
+    case "OJAF_RECORD_APPLICATION": {
+      const payload = message.payload || {};
+      if (!sender.tab?.id || !sender.url || new URL(sender.url).origin !== new URL(payload.context?.sourceUrl).origin) {
+        throw applicationError("网页来源已变化，本次记录未保存。");
+      }
+      const result = await applicationRepository.mutate(recordFill, {
+        ...payload,
+        instanceKey: `${sender.tab.id}:${payload.instanceKey || ""}`,
+        eventKey: `${sender.tab.id}:${payload.eventKey || ""}`
+      });
+      return { record: result.record, statuses: result.statuses };
+    }
+    case "OJAF_SAVE_APPLICATION":
+      return applicationRepository.mutate(saveRecord, message.payload || {});
+    case "OJAF_DELETE_APPLICATION":
+      return applicationRepository.mutate(deleteRecord, message.payload || {});
+    case "OJAF_SAVE_APPLICATION_STATUSES":
+      return applicationRepository.mutate(saveStatuses, message.payload || {});
+    case "OJAF_OPEN_APPLICATIONS": {
+      const query = new URLSearchParams();
+      if (message.payload?.id) query.set("id", String(message.payload.id).slice(0, 80));
+      if (message.payload?.site) query.set("site", String(message.payload.site).slice(0, 240));
+      await chrome.tabs.create({ url: chrome.runtime.getURL(`src/applications.html${query.size ? `?${query}` : ""}`) });
+      return { opened: true };
+    }
     case "OJAF_GET_SETTINGS":
       return getSettings();
     case "OJAF_OPEN_OPTIONS":
@@ -361,7 +416,7 @@ async function saveSettings(payload) {
 }
 
 async function clearSettings() {
-  await chrome.storage.local.clear();
+  await chrome.storage.local.remove([STORAGE_KEYS.profileV2, STORAGE_KEYS.apiConfig]);
   return { cleared: true };
 }
 

@@ -3,59 +3,75 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>OpenJobAutofill</title>
-    <link rel="stylesheet" href="./popup.css" />
+    <title>网申助手</title>
+    <link rel="stylesheet" href="./ui.css" />
+<link rel="stylesheet" href="./popup.css" />
   </head>
   <body>
     <main class="shell">
-      <header class="topbar">
-        <div>
-          <h1>OpenJobAutofill</h1>
-          <p class="repo-note">开源不易，如果这个工具帮到你，欢迎给项目点个 Star。</p>
-          <a class="repo-link" href="https://github.com/Br1an67/OpenJobAutofill" target="_blank" rel="noopener">github.com/Br1an67/OpenJobAutofill</a>
-        </div>
-        <button id="openOptions" class="ghost" type="button">设置</button>
-      </header>
-
-      <section class="panel">
+<header class="topbar">
+<div class="brand">
+<img class="brand-logo" src="../icons/icon48.png" alt="" width="36" height="36">
+<span class="brand-name">网申助手</span>
+</div>
+<button id="openOptions" class="text-button" type="button">设置</button>
+</header>      <section class="panel">
         <button id="startAutofillBtn" type="button">开始填写</button>
+<p class="hint">使用本机资料填写，不自动提交。</p>
         <button id="learnFromPageBtn" class="secondary" type="button">从本页学习</button>
         <button id="showProfilePanelBtn" class="secondary" type="button">打开资料面板</button>
         <button id="clearMarksBtn" class="ghost full" type="button">清除颜色标记</button>
         <p class="hint">从本页学习：手动填完一页后点它，会把“你填的字段 → 资料字段”记进本机记忆，下次自动填。</p>
       </section>
 
+      <section class="panel" aria-labelledby="applicationsTitle">
+        <div class="application-panel-head">
+<h2 id="applicationsTitle">投递记录</h2>
+<button id="openApplications" class="ghost" type="button">查看全部</button>
+</div>
+        <p id="applicationSiteHint" class="hint">正在读取当前网站记录…</p>
+        <ul id="recentApplications" class="recent-applications">
+</ul>
+      </section>
+
       <section id="capturePanel" class="panel" hidden>
         <h2>补录进资料库</h2>
         <p class="hint">下面这些字段的值还不在资料库里。勾选后点“补录并重新学习”，值会直接写进本机资料库，对应映射也会记进记忆；教育、项目等成组经历仍请到设置页添加。</p>
-        <div id="captureList"></div>
+        <div id="captureList">
+</div>
         <button id="captureSaveBtn" class="secondary full" type="button">补录并重新学习</button>
       </section>
 
       <section id="repeatPanel" class="panel" hidden>
         <h2>成组字段学习</h2>
         <p class="hint">下面这些同名字段在一页里出现了多次（如两条教育经历各自的「学校」），值能和资料库里的成组条目对上。勾选后点「学习成组映射」，插件会记住“第 N 个 → 第 N 条”，下次按出现顺序自动填。</p>
-        <div id="repeatList"></div>
+        <div id="repeatList">
+</div>
         <button id="repeatSaveBtn" class="secondary full" type="button">学习成组映射</button>
       </section>
 
-      <section class="panel">
-        <h2>版本更新</h2>
+      <details class="panel compact-details">
+<summary>版本信息</summary>
         <div id="updateStatus" class="update-status">正在读取更新状态...</div>
         <button id="checkUpdateBtn" class="secondary" type="button">检查更新</button>
         <button id="openUpdateBtn" class="ghost full" type="button">打开 Release 页面</button>
-      </section>
+      </details>
 
       <section class="panel muted">
         <div id="status">点击开始填写后会在页面右下角显示进度。绿色表示已填写，橙色表示待处理。</div>
       </section>
 
-      <section class="panel">
-        <h2>怎么用</h2>
+      <details class="panel compact-details">
+<summary>怎么用</summary>
         <p class="hint">在设置页维护本机资料。AI 只辅助识别表单字段，不接收简历具体值；资料面板用于查看、搜索和复制待处理字段需要的内容。</p>
-      </section>
+</details>
+<footer class="popup-footer">
+<a href="https://github.com/NI7I3MN3HS/online-application-assistant" target="_blank" rel="noopener">GitHub 项目</a>
+<span>本地储藏</span>
+</footer>
     </main>
 
-    <script src="./popup.js"></script>
+    <script src="./popup.js">
+</script>
   </body>
 </html>

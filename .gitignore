@@ -9,3 +9,8 @@ coverage/
 .env
 .env.*
 !.env.example
+
+# Local design-tool state and Python caches
+.impeccable/
+__pycache__/
+*.pyc

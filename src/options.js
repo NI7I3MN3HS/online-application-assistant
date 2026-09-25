@@ -510,6 +510,26 @@ window.addEventListener("resize", scheduleProfileSectionSync);
 loadSettings();
 loadUpdateStatus();
 initFieldMemoryCard();
+void import("./resume/import-ui.mjs").then(({ initResumeImport }) => {
+  initResumeImport({
+    schema: STRUCTURED_RESUME_SECTIONS,
+    readProfile: () => {
+      if (!fields.profileSectionEditor.childElementCount) throw new Error("资料尚未加载完成，请刷新设置页后重试。");
+      return collectProfileV2FromEditor();
+    },
+    readSavedProfile: async () => getProfileV2FromSettings(await sendRuntimeMessage({ type: "OJAF_GET_SETTINGS" })),
+    saveProfile: async (profileV2, message) => {
+      // Commit first: a storage/quota failure must leave the editor untouched.
+      await sendRuntimeMessage({ type: "OJAF_SAVE_SETTINGS", payload: { profileV2 } });
+      renderProfileSectionEditor(profileV2);
+      setProfileSaved(message);
+      setStatus(message);
+      showToast(message);
+    }
+  });
+}).catch(() => {
+  document.getElementById("resumeImportStatus").textContent = "简历导入工具加载失败，请重新加载扩展后重试。其他资料编辑功能仍可使用。";
+});
 
 // ===== 字段记忆管理（本机增强） =====
 async function getFieldMemory() {
@@ -810,7 +830,7 @@ async function exportProfile() {
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement("a");
     anchor.href = url;
-    anchor.download = `openjobautofill-profile-${new Date().toISOString().slice(0, 10)}.json`;
+    anchor.download = `online-application-assistant-profile-${new Date().toISOString().slice(0, 10)}.json`;
     document.body.appendChild(anchor);
     anchor.click();
     anchor.remove();
@@ -867,7 +887,7 @@ async function clearLocalData() {
   try {
     await sendRuntimeMessage({ type: "OJAF_CLEAR_SETTINGS" });
     await loadSettings();
-    setStatus("本地数据已清空，已恢复默认模板。");
+    setStatus("简历资料和 API 设置已清空，已恢复默认模板。投递记录与字段记忆已保留。");
   } catch (error) {
     setStatus(`清空失败：${error.message}`, true);
   }
@@ -1247,6 +1267,9 @@ function renderProfileNav() {
     return;
   }
 
+  const sectionSelect = document.getElementById('profileSectionSelect');
+  sectionSelect.replaceChildren(...RESUME_SECTION_GUIDE.map(section => new Option(section.title, section.key)));
+  sectionSelect.onchange = () => { location.hash = `profile-section-${sectionSelect.value}`; setActiveProfileSection(sectionSelect.value, { force: true }); };
   fields.profileNav.innerHTML = RESUME_SECTION_GUIDE.map((section) => {
     return `
       <a href="#profile-section-${escapeHtml(section.key)}" data-profile-nav="${escapeHtml(section.key)}">
@@ -1309,7 +1332,13 @@ function setActiveProfileSection(sectionKey, options = {}) {
     return;
   }
 
+  const selected = fields.profileSectionEditor?.querySelector(`[data-profile-section="${CSS.escape(sectionKey)}"]`);
+  if (!selected) return;
   activeProfileSectionKey = sectionKey;
+  document.getElementById("profileSectionSelect").value = sectionKey;
+  fields.profileSectionEditor.querySelectorAll('[data-profile-section]').forEach(section => {
+    section.hidden = section.dataset.profileSection !== sectionKey;
+  });
   renderProfileTips(sectionKey);
 }
 
@@ -1325,33 +1354,8 @@ function scheduleProfileSectionSync() {
 }
 
 function syncActiveProfileSectionFromScroll() {
-  if (!fields.profileSectionEditor) {
-    return;
-  }
-
-  const sections = Array.from(fields.profileSectionEditor.querySelectorAll("[data-profile-section]"));
-  if (sections.length === 0) {
-    return;
-  }
-
-  const anchorY = Math.min(Math.max(window.innerHeight * 0.26, 120), 220);
-  let activeSection = sections[0];
-  let activeScore = Number.POSITIVE_INFINITY;
-
-  for (const section of sections) {
-    const rect = section.getBoundingClientRect();
-    if (rect.bottom < 80) {
-      continue;
-    }
-
-    const distance = rect.top <= anchorY ? Math.abs(rect.top - anchorY) * 0.35 : Math.abs(rect.top - anchorY);
-    if (distance < activeScore) {
-      activeScore = distance;
-      activeSection = section;
-    }
-  }
-
-  setActiveProfileSection(activeSection.dataset.profileSection || "");
+  const key = location.hash.startsWith('#profile-section-') ? location.hash.slice(17) : activeProfileSectionKey || 'basic';
+  setActiveProfileSection(key, { force: true });
 }
 
 function handleProfileSectionFocus(event) {
@@ -1440,6 +1444,21 @@ function renderProfileSectionEditor(profileV2) {
     .join("");
 
   fields.profileSectionEditor.innerHTML = known + extras;
+  fields.profileNav.querySelectorAll('[data-extra-nav]').forEach(link => link.remove());
+  document.querySelectorAll('#profileSectionSelect [data-extra-nav]').forEach(option => option.remove());
+  for (const section of parsed.customSections || []) {
+    const domSection = [...fields.profileSectionEditor.querySelectorAll('[data-extra-section="true"]')].find(el => el.dataset.sectionTitle === section.title);
+    if (!domSection) continue;
+    const link = document.createElement('a');
+    link.href = `#profile-section-${domSection.dataset.profileSection}`;
+    link.dataset.profileNav = domSection.dataset.profileSection;
+    link.dataset.extraNav = 'true';
+    link.textContent = section.title;
+    link.addEventListener('click', () => setActiveProfileSection(domSection.dataset.profileSection, { force: true }));
+    fields.profileNav.append(link);
+    const option = new Option(section.title, domSection.dataset.profileSection); option.dataset.extraNav = 'true';
+    document.getElementById('profileSectionSelect').append(option);
+  }
   scheduleProfileSectionSync();
   updateProfileCompletion();
 }
@@ -1485,10 +1504,9 @@ function renderStructuredSection(section, data = null) {
 function renderStructuredSimple(section, data = {}) {
   const values = data.values || {};
   const custom = data.custom || [];
+  const visibleFields = getFieldsIncludingImportedExtras(section, values);
   return `
-    <div class="structured-grid">
-      ${(section.fields || []).map((field) => renderStructuredField(field, values[field.label])).join("")}
-    </div>
+    ${renderStructuredFieldGroups(section, visibleFields, values)}
     ${renderStructuredCustomArea(custom)}
   `;
 }
@@ -1512,12 +1530,32 @@ function renderStructuredItem(section, item, index) {
         <input class="structured-item-title" data-item-title value="${escapeHtml(title)}" aria-label="${escapeHtml(section.itemLabel || section.title)}标题" />
         <button class="structured-remove" type="button" data-action="remove-structured-item">删除</button>
       </div>
-      <div class="structured-grid">
-        ${(section.fields || []).map((field) => renderStructuredField(field, item?.values?.[field.label])).join("")}
-      </div>
+      ${renderStructuredFieldGroups(section, getFieldsIncludingImportedExtras(section, item?.values || {}), item?.values || {})}
       ${renderStructuredCustomArea(item?.custom || [])}
     </article>
   `;
+}
+
+function renderStructuredFieldGroups(section, fields, values) {
+  const priorities = {
+    basic: ['姓名', '英文名', '性别', '出生日期', '电话', '邮箱', '现居住城市', '现居住详细地址'],
+    education: ['学校', '专业', '学历', '学位', '学院（院系）', '学习形式', '开始时间', '结束时间', '成绩', '专业排名'],
+    work: ['公司', '部门', '职位', '开始时间', '结束时间', '工作内容'],
+    internship: ['公司', '部门', '职位', '开始时间', '结束时间', '工作内容']
+  };
+  const priority = priorities[section.key];
+  if (!priority || fields.length <= 10) return `<div class="structured-grid">${fields.map(field => renderStructuredField(field, values[field.label])).join('')}</div>`;
+  const primary = priority.map(label => fields.find(field => field.label === label)).filter(Boolean);
+  // Every secondary control stays in the DOM, so saving and import merge retain all fields.
+  const rest = fields.filter(field => !primary.includes(field));
+  return `<div class="structured-grid">${primary.map(field => renderStructuredField(field, values[field.label])).join('')}</div>
+    <details class="more-profile-fields"><summary>更多${escapeHtml(section.title)}字段 · ${rest.length} 项</summary><div class="structured-grid">${rest.map(field => renderStructuredField(field, values[field.label])).join('')}</div></details>`;
+}
+
+function getFieldsIncludingImportedExtras(section, values) {
+  const standard = section.fields || [];
+  const known = new Set(standard.map((field) => field.label));
+  return [...standard, ...Object.keys(values).filter((label) => !known.has(label)).map((label) => profileField(label))];
 }
 
 function renderStructuredField(field, value = "") {
@@ -1529,7 +1567,9 @@ function renderStructuredField(field, value = "") {
   if (field.type === "textarea") {
     control = `<textarea id="${id}" data-field-label="${escapeHtml(field.label)}" rows="${field.rows || 4}" placeholder="${escapeHtml(field.placeholder || "")}">${escapeHtml(valueText)}</textarea>`;
   } else if (field.type === "select") {
-    const options = (field.options || ["", "是", "否"])
+    const choices = [...(field.options || ["", "是", "否"])];
+    if (valueText && !choices.includes(valueText)) choices.push(valueText);
+    const options = choices
       .map((option) => {
         const selected = String(option) === valueText ? " selected" : "";
         return `<option value="${escapeHtml(option)}"${selected}>${escapeHtml(option)}</option>`;
@@ -1537,7 +1577,12 @@ function renderStructuredField(field, value = "") {
       .join("");
     control = `<select id="${id}" data-field-label="${escapeHtml(field.label)}">${options}</select>`;
   } else {
-    control = `<input id="${id}" data-field-label="${escapeHtml(field.label)}" type="${escapeHtml(field.type || "text")}" value="${escapeHtml(valueText)}" placeholder="${escapeHtml(field.placeholder || "")}" />`;
+    // Native month/date controls silently erase values such as “至今” or a
+    // year-only date. Preserve their precision instead of inventing a month.
+    const needsText = valueText && ((field.type === "month" && !/^\d{4}-(0[1-9]|1[0-2])$/.test(valueText))
+      || (field.type === "date" && !/^\d{4}-\d{2}-\d{2}$/.test(valueText)));
+    const type = needsText ? "text" : field.type || "text";
+    control = `<input id="${id}" data-field-label="${escapeHtml(field.label)}" type="${escapeHtml(type)}" value="${escapeHtml(valueText)}" placeholder="${escapeHtml(field.placeholder || "")}" />`;
   }
 
   return `
@@ -1942,7 +1987,7 @@ function parseImportedProfileBackup(text) {
   }
 
   if (!isPlainObject(parsed) || parsed.format !== PROFILE_BACKUP_FORMAT || !parsed.profileV2) {
-    throw new Error("当前只支持导入 OpenJobAutofill 导出的资料备份文件。");
+    throw new Error("当前只支持导入网申助手及兼容旧版本导出的资料备份文件。");
   }
 
   return normalizeProfileV2(parsed.profileV2);

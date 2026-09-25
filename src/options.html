@@ -1,51 +1,55 @@
 <!doctype html>
 <html lang="zh-CN">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>OpenJobAutofill 设置</title>
-    <link rel="stylesheet" href="./options.css" />
-  </head>
-  <body>
-    <main class="page">
-      <header class="hero">
-        <div>
-          <p class="eyebrow">OpenJobAutofill</p>
-          <h1>维护本机简历资料</h1>
-          <p class="hint">数据只保存在本机浏览器里，不会走同步云端。AI 只辅助识别表单字段和可匹配的资料项，不会读取你的简历值。点击开始填写后会自动填写能确定的字段，待处理字段可在资料面板查看和手动复制。</p>
-        </div>
-      </header>
-
-      <section class="onboarding-guide card" aria-label="首次使用步骤">
-        <div>
-          <p class="eyebrow">首次使用</p>
-          <h2>三步开始网申填写</h2>
-        </div>
-        <div class="onboarding-flow">
-          <ol class="onboarding-steps">
-            <li>
-              <strong>填写资料</strong>
-              <span>先在下面按模块维护本机简历资料。</span>
-            </li>
-            <li>
-              <strong>保存资料</strong>
-              <span>点击底部“保存资料”，看到浮层提示后就已保存到本机。</span>
-            </li>
-            <li>
-              <strong>开始填写</strong>
-              <span>打开招聘表单页，点击插件图标里的“开始填写”。</span>
-            </li>
-          </ol>
-          <p class="optional-api-note">
-            AI 页面分析是可选增强：如果希望模型辅助理解表单字段，再到下方 API 设置填写 API Key、Base URL 和模型名。测试 API 连接只验证当前表单值，点击“保存 API 设置”后才会用于填写。不配置 API 时仍可使用本地规则填写。
-          </p>
-        </div>
-      </section>
-
-      <section class="resume-workbench">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>简历资料 · 网申助手</title>
+<link rel="stylesheet" href="./ui.css">
+<link rel="stylesheet" href="./options.css">
+</head>
+<body>
+<div class="app-layout">
+<aside class="app-sidebar">
+<a class="brand" href="./options.html#profile">
+<img class="brand-logo" src="../icons/icon48.png" alt="" width="36" height="36">
+<span class="brand-name">网申助手</span>
+</a>
+<nav class="app-nav" aria-label="主导航">
+<a data-main-nav="profile" href="./options.html#profile">简历资料</a>
+<a data-main-nav="applications" href="./applications.html">投递日志</a>
+<a data-main-nav="memory" href="./options.html#memory">字段记忆</a>
+<a data-main-nav="settings" href="./options.html#settings">设置</a>
+</nav>
+<div class="sidebar-local">本地储藏</div>
+</aside>
+<main class="page">
+<header class="page-heading">
+<div>
+<p class="page-kicker" id="viewKicker">本机资料</p>
+<h1 id="viewTitle">简历资料</h1>
+<p class="hint" id="viewDescription">用于网申填写的本机资料，修改后请保存。</p>
+</div>
+<div class="actions" id="profileHeaderActions">
+<a class="button secondary" href="#import">导入简历</a>
+<button type="button" id="headerSaveProfile">保存资料</button>
+</div>
+<a id="backToProfile" class="button secondary" href="#profile" hidden>返回资料</a>
+</header>
+<details class="onboarding-guide" data-view="profile">
+<summary>首次使用 · 三步开始填写</summary>
+<ol>
+<li>导入简历，或按栏目补充资料。</li>
+<li>点击“保存资料”，保存到本机。</li>
+<li>打开招聘表单页，在插件中选择“开始填写”。</li>
+</ol>
+<p class="hint">API 页面分析是可选增强；无需 API 也能使用本机规则。插件不会自动提交。</p>
+</details>      <section class="resume-workbench" data-view="profile">
         <aside class="resume-nav card">
           <div class="side-title">资料目录</div>
-          <nav id="profileNav" class="resume-nav-list" aria-label="简历资料目录"></nav>
+          <select id="profileSectionSelect" class="profile-section-select" aria-label="资料栏目">
+</select>
+<nav id="profileNav" class="resume-nav-list" aria-label="简历资料目录">
+</nav>
         </aside>
 
         <section class="card profile-card">
@@ -55,15 +59,12 @@
               <p class="hint">这里按通用网申栏目拆开填写。保存后资料只保存在本机浏览器里，需要迁移或备份时再导出资料备份。</p>
             </div>
           </div>
-          <div id="profileSectionEditor" class="profile-section-editor"></div>
-          <div class="actions profile-actions">
-            <button id="saveProfile" type="button">保存资料</button>
-            <button id="exportProfile" class="secondary" type="button">导出资料备份</button>
-            <button id="importProfile" class="secondary" type="button">导入资料备份</button>
-            <button id="resetProfile" class="ghost" type="button">恢复空白模板</button>
-            <button id="clearLocalData" class="ghost danger" type="button">清空资料和 API 设置</button>
-          </div>
-          <p id="profileFeedback" class="profile-feedback" aria-live="polite">资料加载后，编辑任意字段会在这里提示是否需要保存。</p>
+          <div id="profileSectionEditor" class="profile-section-editor">
+</div>
+<div class="actions profile-actions">
+<button id="saveProfile" type="button">保存资料</button>
+<a class="button secondary" href="#settings-data">资料备份与管理</a>
+</div>          <p id="profileFeedback" class="profile-feedback" aria-live="polite">资料加载后，编辑任意字段会在这里提示是否需要保存。</p>
           <input id="profileFileInput" type="file" accept="application/json,.json" hidden />
         </section>
 
@@ -75,12 +76,81 @@
             <p>AI 只辅助识别表单字段，不接收具体资料值。</p>
             <p>插件不会自动提交表单。</p>
           </div>
-          <div id="profileTips" class="profile-tips"></div>
+          <div id="profileTips" class="profile-tips">
+</div>
         </aside>
       </section>
 
-      <section class="grid settings-grid">
-        <section class="card update-card">
+      <section id="resumeImport" class="resume-import view-content" data-view="import" hidden aria-labelledby="resumeImportTitle">
+        <div class="resume-import-heading">
+          <div>
+            <h2 id="resumeImportTitle">从简历导入资料</h2>
+            <p class="hint">选择简历后先预览、修正，再填入资料。文件和文字都在本机解析，无需 API。</p>
+          </div>
+          <button id="undoResumeImport" class="ghost" type="button" hidden>撤销本次导入</button>
+        </div>
+        <fieldset id="resumeImportControls" class="resume-import-controls" disabled>
+          <legend class="visually-hidden">选择文件或粘贴简历</legend>
+          <div class="resume-file-row">
+            <label for="resumeFile">简历文件
+              <input id="resumeFile" type="file" accept=".pdf,.docx,.txt,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain" aria-describedby="resumeFileHelp" />
+            </label>
+            <button id="parseResumeFile" type="button">解析简历</button>
+          </div>
+          <p id="resumeFileHelp" class="hint">PDF、Word（.docx）、TXT，最大 10 MB / 30 页。扫描或文字转图形的 PDF 会自动在本机 OCR（最多 10 页），可能需要数十秒；识别后请核对姓名、数字和专业术语。</p>
+          <details id="resumeTextDetails" class="resume-text-details">
+            <summary>粘贴简历文字 / 修正提取原文</summary>
+            <label for="resumeText">简历文字
+              <textarea id="resumeText" rows="7" maxlength="200000" placeholder="粘贴包含姓名、联系方式、教育和工作经历的简历文字…">
+</textarea>
+            </label>
+            <button id="parseResumeText" class="secondary" type="button">解析这些文字</button>
+          </details>
+        </fieldset>
+        <div class="resume-import-status-row">
+          <p id="resumeImportStatus" class="hint" role="status" aria-live="polite">正在加载导入工具…</p>
+          <button id="cancelResumeParsing" class="ghost" type="button" hidden>取消解析</button>
+        </div>
+        <div id="resumeImportPreview" hidden>
+          <h3 id="resumePreviewTitle" tabindex="-1">核对解析结果</h3>
+          <ul id="resumeImportWarnings" class="resume-import-warnings">
+</ul>
+          <p class="hint">勾选要导入的字段，可直接修改识别值。展开每条的原文核对分组；原文顺序有误时，可在上方修正后重新解析。</p>
+          <div class="resume-preview-layout">
+<fieldset id="resumePreviewControls" class="resume-import-controls">
+            <legend class="visually-hidden">解析结果与合并方式</legend>
+            <div class="actions">
+              <button id="selectAllResumeFields" class="ghost" type="button">全选字段</button>
+              <button id="clearResumeSelection" class="ghost" type="button">取消全选</button>
+            </div>
+            <div id="resumePreviewGroups" class="resume-preview-groups">
+</div>
+            <label class="resume-merge-mode" for="resumeMergeMode">遇到已有值时
+              <select id="resumeMergeMode">
+                <option value="preserve">保留已有值，只补空缺（推荐）</option>
+                <option value="overwrite">用所选字段更新对应的已有值</option>
+              </select>
+            </label>
+            <p class="hint">新经历追加到末尾，不改变已有顺序。只有能明确匹配的同一经历才合并。保存时会一并保存资料编辑区的修改。</p>
+            <p id="resumeMergeSummary" class="resume-merge-summary" aria-live="polite">
+</p>
+            <div class="actions">
+              <button id="applyResumeImport" type="button">填入并保存资料</button>
+              <button id="discardResumeImport" class="ghost" type="button">放弃本次结果</button>
+            </div>
+          </fieldset>
+<aside class="import-source" aria-label="当前资料原文">
+<h4>提取原文</h4>
+<p class="hint">选择字段，查看对应的原文。</p>
+<pre id="resumeSourceText">
+</pre>
+<p class="hint">请核对姓名、数字和经历分组。未归类内容可展开左侧原文查看。</p>
+</aside>
+</div>
+        </div>
+      </section>
+
+        <section class="view-content memory-page" data-view="memory" hidden>
           <h2>字段记忆（本机增强）</h2>
           <p class="hint">自动填写成功后，会把“页面字段 → 资料字段”的对应关系记在本机；下次遇到同名字段直接回填，不再依赖 AI。只记字段名和资料字段路径，不记资料值。同页出现多次的字段（如多条教育经历的“学校”）不会使用记忆。</p>
           <div class="actions">
@@ -90,22 +160,20 @@
             <button id="clearFieldMemory" class="ghost danger" type="button">清空记忆</button>
           </div>
           <p id="fieldMemoryFeedback" class="update-feedback" aria-live="polite">正在读取字段记忆...</p>
-          <ul id="fieldMemoryList" style="list-style:none;margin:8px 0 0;padding:0;max-height:220px;overflow:auto;font-size:12px;"></ul>
+          <ul id="fieldMemoryList" class="memory-list">
+</ul>
         </section>
 
-        <section class="card update-card">
-          <h2>版本更新</h2>
-          <p class="hint">插件会定期检查 GitHub Release。发现新版本时，浏览器图标会显示 NEW；更新前建议先导出资料备份。更新时不要卸载扩展，覆盖或重新加载后，本机资料和 API 设置会保留。</p>
-          <div class="actions">
-            <button id="checkUpdate" class="secondary" type="button">检查更新</button>
-            <button id="openUpdatePage" class="ghost" type="button">打开 Release 页面</button>
-          </div>
-          <p id="updateFeedback" class="update-feedback" aria-live="polite">正在读取更新状态...</p>
-        </section>
+<section class="settings-view view-content" data-view="settings" hidden>
+<nav class="text-tabs" aria-label="设置分类">
+<a href="#settings" data-settings-tab="api">API 页面分析</a>
+<a href="#settings-data" data-settings-tab="data">数据与备份</a>
+<a href="#settings-version" data-settings-tab="version">版本信息</a>
+</nav>        <form id="settingsForm" class="settings-section" data-settings-pane="api">
+          <div class="api-form-fields">
+<h2>API 连接</h2>
 
-        <form id="settingsForm" class="card">
-          <h2>API 设置（可选，用于 AI 页面分析）</h2>
-
+          <p class="hint">不配置 API 也可以使用本机规则。测试只验证当前输入，保存后才用于填写。</p>
           <label>
             API 模式
             <select id="apiMode">
@@ -122,7 +190,8 @@
           <label>
             模型名
             <input id="model" type="text" list="modelOptions" placeholder="例如 your-custom-model" />
-            <datalist id="modelOptions"></datalist>
+            <datalist id="modelOptions">
+</datalist>
             <span class="field-help">可以手动输入任意模型名；刷新候选模型只会提供建议，不会限制这里的输入。</span>
           </label>
 
@@ -151,7 +220,8 @@
 
             <label>
               额外 Headers JSON
-              <textarea id="extraHeadersJson" rows="4" spellcheck="false" placeholder='{"x-api-source":"job-autofill"}'></textarea>
+              <textarea id="extraHeadersJson" rows="4" spellcheck="false" placeholder='{"x-api-source":"job-autofill"}'>
+</textarea>
             </label>
           </div>
 
@@ -171,12 +241,14 @@
 
             <label>
               Custom Headers JSON
-              <textarea id="customHeadersJson" rows="4" spellcheck="false" placeholder='{"authorization":"Bearer xxx"}'></textarea>
+              <textarea id="customHeadersJson" rows="4" spellcheck="false" placeholder='{"authorization":"Bearer xxx"}'>
+</textarea>
             </label>
 
             <label>
               请求模板 Body Template
-              <textarea id="customBodyTemplate" rows="10" spellcheck="false"></textarea>
+              <textarea id="customBodyTemplate" rows="10" spellcheck="false">
+</textarea>
             </label>
 
             <label>
@@ -195,22 +267,63 @@
             <button id="testConnection" class="secondary" type="button">测试 API 连接</button>
           </div>
 
-          <p id="apiFeedback" class="api-feedback" aria-live="polite"></p>
+          </div>
+<aside class="api-inspector">
+<h3>连接状态</h3>
+<p class="hint">测试验证当前输入，保存后才用于填写。</p>
+<p id="apiFeedback" class="api-feedback" aria-live="polite">
+</p>
           <div id="apiPreviewBox" class="api-preview-box" hidden>
             <div class="api-preview-title">响应预览</div>
-            <pre id="apiPreview" class="api-preview"></pre>
+            <pre id="apiPreview" class="api-preview">
+</pre>
           </div>
-        </form>
+        <div class="api-privacy">
+<h3>隐私边界</h3>
+<p>AI 只接收表单字段与资料目录，不接收简历具体值。</p>
+<p>本机规则填写无需 API。</p>
+</div>
+</aside>
+</form>
+<section class="settings-section" data-settings-pane="data" hidden>
+<h2>数据与备份</h2>
+<p class="hint">导入、导出本机资料备份。备份格式保持不变，不包含投递记录。</p>          <div class="actions data-actions">
 
-      </section>
+            <button id="exportProfile" class="secondary" type="button">导出资料备份</button>
+            <button id="importProfile" class="secondary" type="button">导入资料备份</button>
+            <button id="resetProfile" class="ghost" type="button">恢复空白模板</button>
+            <button id="clearLocalData" class="ghost danger" type="button">清空资料和 API 设置</button>
+          </div>
+<div class="data-notes">
+<h3>恢复空白模板</h3>
+<p>只重置当前编辑区，点击“保存资料”后才写入本机。</p>
+<h3>清空资料和 API 设置</h3>
+<p>删除已保存的简历资料和 API 设置。投递记录与字段记忆会保留。</p>
+<h3>隐私边界</h3>
+<p>资料不会同步到云端。AI 只辅助识别字段，不接收具体资料值。插件不会自动提交网页表单。</p>
+</div>
+</section>        <section class="settings-section" data-settings-pane="version" hidden>
+          <h2>版本更新</h2>
+          <p class="hint">插件会定期检查 GitHub Release。发现新版本时，浏览器图标会显示 NEW；更新前建议先导出资料备份。更新时不要卸载扩展，覆盖或重新加载后，本机资料和 API 设置会保留。</p>
+          <div class="actions">
+            <button id="checkUpdate" class="secondary" type="button">检查更新</button>
+            <button id="openUpdatePage" class="ghost" type="button">打开 Release 页面</button>
+          </div>
+          <p id="updateFeedback" class="update-feedback" aria-live="polite">正在读取更新状态...</p>
+        </section>
 
-      <section class="card status-card">
-        <h2>状态</h2>
-        <pre id="status">正在加载...</pre>
-      </section>
-    </main>
-    <div id="toast" class="toast" role="status" aria-live="polite" aria-atomic="true" hidden></div>
-
-    <script src="./options.js"></script>
-  </body>
+</section>
+<details class="diagnostics">
+<summary>运行状态</summary>
+<pre id="status">正在加载…</pre>
+</details>
+</main>
+</div>
+<div id="toast" class="toast" role="status" aria-live="polite" aria-atomic="true" hidden>
+</div>
+<script src="./options.js">
+</script>
+<script src="./shell.js">
+</script>
+</body>
 </html>
